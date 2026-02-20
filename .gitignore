@@ -1,0 +1,39 @@
+# Virtual environment
+.venv/
+
+# WandB experiment logs (large binary files)
+wandb/
+
+# Model checkpoints (large .ckpt files)
+**/*.ckpt
+**/checkpoints/
+
+# Run ID folders (created by PyTorch Lightning)
+NBEATSS_thesis/NBEATSS_thesis/*/
+
+# Processed/cached PyTorch tensors (large)
+data/processed/*.pt
+NBEATSS_thesis/data/processed/*.pt
+
+# Large raw M4 data files (exceed GitHub 100MB limit)
+NBEATSS_thesis/data/raw/Daily-train.csv
+NBEATSS_thesis/data/raw/Monthly-train.csv
+data/raw/Daily-train.csv
+data/raw/Monthly-train.csv
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+__MACOSX/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

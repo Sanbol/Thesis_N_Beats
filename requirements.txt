@@ -1,0 +1,23 @@
+# Core deep learning
+torch==2.9.1
+lightning==2.6.0
+pytorch-lightning==2.6.0
+pytorch-forecasting==1.1.1
+torchmetrics==1.8.2
+
+# Data handling
+numpy==1.26.4
+pandas==2.3.3
+scikit-learn==1.8.0
+scipy==1.16.3
+
+# Experiment tracking
+wandb==0.23.1
+
+# Visualization
+plotly==6.5.0
+
+# Utilities
+python-docx==1.2.0
+requests==2.32.5
+tqdm==4.67.1
