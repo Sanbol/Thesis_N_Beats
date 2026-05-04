@@ -1,17 +1,19 @@
 """
-Automated Experiment Runner for N-BEATS-S Thesis
-=================================================
-Runs all 18 experiments (12 core + 6 pre-training) systematically.
+Tuned N-BEATS-S Experiment Runner
+==================================
+Runs all experiments with architecture from Van Belle et al. (2023):
+  hidden_layer_units = 256, n_blocks = 20  (from Van Belle et al., 2023, Table 3)
 
-4 Conditions × 3 Seeds = 12 core experiments:
+Conditions:
   A. Scratch Standard   (M3 only, lambda=0.0, ema=0.0)
   B. Scratch Stabilized (M3 only, lambda=0.02, ema=0.99)
-  C. TL Standard        (M4→M3, lambda=0.0, ema=0.0)
-  D. TL Stabilized      (M4→M3, lambda=0.02, ema=0.99)
+  C. TL Standard        (M4->M3, lambda=0.0, ema=0.0)
+  D. TL Stabilized      (M4->M3, lambda=0.02, ema=0.99)
+  E. ZeroShot Standard  (M4->test M3, lambda=0.0, ema=0.0)
+  F. ZeroShot Stabilized(M4->test M3, lambda=0.02, ema=0.99)
 
-Plus 6 pre-training runs on M4 (3 Standard + 3 Stabilized).
-
-Results are saved to experiment_results.csv.
+3 seeds each = 24 total runs (6 scratch + 6 pretrain + 6 finetune + 6 zeroshot).
+Results saved to experiment_results_tuned.csv.
 """
 
 import subprocess
@@ -30,25 +32,17 @@ from datetime import datetime
 BASE_DIR = Path(__file__).parent
 PYTHON_EXE = sys.executable  # works on Windows, Linux, and macOS
 MAIN_PY = BASE_DIR / "main.py"
-MAIN_PY_BACKUP = BASE_DIR / "main_backup.py"
+MAIN_PY_BACKUP = BASE_DIR / "main_backup_tuned.py"
 WANDB_DIR = BASE_DIR / "wandb"
-RESULTS_FILE = BASE_DIR / "experiment_results.csv"
+RESULTS_FILE = BASE_DIR / "experiment_results_tuned.csv"
 
 # ============================================================
 # EXPERIMENTAL DESIGN
 # ============================================================
 SEEDS = [1, 2, 3]
 
-STANDARD = {"lambda_stability": 0.0, "ema_decay": 0.0}
-STABILIZED = {"lambda_stability": 0.02, "ema_decay": 0.99}
-
-# Phase-specific training parameters
-SCRATCH_PARAMS = {"learning_rate": "1e-3", "explr_gamma": 1.0, "max_epochs": 10}
-PRETRAIN_PARAMS = {"learning_rate": "1e-3", "explr_gamma": 1.0, "max_epochs": 10}
-FINETUNE_PARAMS = {"learning_rate": "1e-5", "explr_gamma": 0.97, "max_epochs": 15}
-
 # ============================================================
-# CONFIG TEMPLATE (replaces lines ~56-105 of main.py)
+# CONFIG TEMPLATE — Van Belle et al. (2023): hidden=256, n_blocks=20
 # ============================================================
 CONFIG_TEMPLATE = '''    ##########################
     # EXPERIMENT CONFIGURATION
@@ -73,8 +67,8 @@ CONFIG_TEMPLATE = '''    ##########################
     else:
         backcast_length_multiplier = 8
         forecast_length = 6
-        hidden_layer_units = 32
-        n_blocks = 3
+        hidden_layer_units = 256
+        n_blocks = 20
         n_blocks_shared = 1
         ensemble_size = 1
         zero_mean = True
@@ -97,7 +91,7 @@ CONFIG_TEMPLATE = '''    ##########################
         ema_decay = {ema_decay}
     ## Trainer hparams
     max_norm = 1.0
-    batches_per_epoch = 50
+    batches_per_epoch = 250
     patience = 1e6
     max_epochs = {max_epochs}
 
@@ -114,68 +108,58 @@ CONFIG_TEMPLATE = '''    ##########################
 # ============================================================
 
 def get_existing_wandb_runs():
-    """Get set of existing wandb run directories."""
     if not WANDB_DIR.exists():
         return set()
-    return set(d.name for d in WANDB_DIR.iterdir() 
+    return set(d.name for d in WANDB_DIR.iterdir()
                if d.is_dir() and d.name.startswith("offline-run-"))
 
 
 def find_new_run(existing_runs):
-    """Find the newly created wandb run directory after an experiment."""
     current_runs = get_existing_wandb_runs()
     new_runs = current_runs - existing_runs
     if len(new_runs) == 1:
         return new_runs.pop()
     elif len(new_runs) > 1:
-        return sorted(new_runs)[-1]  # most recent
+        return sorted(new_runs)[-1]
     return None
 
 
 def extract_run_id(run_dir_name):
-    """Extract wandb run ID from directory name like 'offline-run-20260211_205655-cjlgqu4g'."""
     match = re.search(r'-([a-z0-9]+)$', run_dir_name)
     return match.group(1) if match else None
 
 
 def parse_metrics_from_output(text):
-    """Parse test metrics from stdout or output.log text."""
     metrics = {}
     for metric in ["RMSSE", "sMAPE", "RMSSC", "sMAPC"]:
         match = re.search(rf'{metric}\s+([0-9.]+)', text)
+        if not match:
+            match = re.search(rf'test_{metric}[\'"]?\s*[:\|]\s*([0-9.]+)', text)
         if match:
             metrics[metric] = float(match.group(1))
     return metrics
 
 
 def modify_main_py(config_values):
-    """Replace the experiment configuration section in main.py."""
     content = MAIN_PY.read_text(encoding='utf-8')
-    
-    # Find config section boundaries
     start_marker = "    ##########################\n    # EXPERIMENT CONFIGURATION\n    ##########################"
     end_marker = "\n    ###################################################################################################"
-    
     start_idx = content.find(start_marker)
     end_idx = content.find(end_marker)
-    
     if start_idx == -1 or end_idx == -1:
         raise ValueError("Could not find config section boundaries in main.py")
-    
     new_config = CONFIG_TEMPLATE.format(**config_values)
     new_content = content[:start_idx] + new_config + content[end_idx:]
     MAIN_PY.write_text(new_content, encoding='utf-8')
 
 
 def format_time(seconds):
-    """Format seconds as HH:MM:SS."""
     m, s = divmod(int(seconds), 60)
     h, m = divmod(m, 60)
     return f"{h:02d}:{m:02d}:{s:02d}"
 
 
 def run_experiment(name, config_values):
-    """Run a single experiment: modify config, execute, collect results."""
     print(f"\n{'='*70}")
     print(f"  RUNNING: {name}")
     print(f"  Config: dataset={config_values['dataset']}, "
@@ -186,70 +170,64 @@ def run_experiment(name, config_values):
           f"seed={config_values['seed']}, "
           f"load_model={config_values['load_model']}")
     print(f"{'='*70}")
-    
-    # Record existing runs before this experiment
+
     existing_runs = get_existing_wandb_runs()
-    
-    # Modify main.py config section
     modify_main_py(config_values)
-    
-    # Run experiment
+
     start_time = time.time()
     env = os.environ.copy()
     env["WANDB_MODE"] = "offline"
-    
+    env["PYTHONIOENCODING"] = "utf-8"
+
     try:
         result = subprocess.run(
             [PYTHON_EXE, str(MAIN_PY)],
             cwd=str(BASE_DIR),
             env=env,
             capture_output=True,
-            text=True,
-            timeout=7200  # 2 hour timeout per run
+            encoding="utf-8",
+            errors="replace",
+            timeout=172800  # 48 hour timeout (M4 eval is very slow)
         )
     except subprocess.TimeoutExpired:
-        print(f"  TIMEOUT after 2 hours for {name}")
+        print(f"  TIMEOUT after 48 hours for {name}")
         return None, None
-    
+
     elapsed = time.time() - start_time
-    
+
+    stdout = result.stdout or ""
+    stderr = result.stderr or ""
+
     if result.returncode != 0:
         print(f"  ERROR in {name} (exit code {result.returncode}):")
-        print(f"  {result.stderr[-1000:]}")
+        print(f"  STDOUT: {stdout[-1000:]}")
+        print(f"  STDERR: {stderr[-1000:]}")
         return None, None
-    
-    # Find new wandb run
+
     new_run = find_new_run(existing_runs)
-    if not new_run:
-        print(f"  WARNING: Could not find new wandb run for {name}")
-        # Try parsing metrics from stdout anyway
-        metrics = parse_metrics_from_output(result.stdout)
-        return None, metrics if metrics else None
-    
-    run_id = extract_run_id(new_run)
-    
-    # Parse metrics from stdout first, fallback to output.log
-    metrics = parse_metrics_from_output(result.stdout)
-    if not metrics:
+    run_id = extract_run_id(new_run) if new_run else None
+
+    metrics = parse_metrics_from_output(stdout)
+    if not metrics and new_run:
         output_log = WANDB_DIR / new_run / "files" / "output.log"
         if output_log.exists():
             metrics = parse_metrics_from_output(output_log.read_text(encoding='utf-8'))
-    
+
     print(f"  Completed in {format_time(elapsed)}")
     print(f"  Run ID: {run_id}")
-    print(f"  Metrics: sMAPE={metrics.get('sMAPE', 'N/A'):.4f}, "
-          f"RMSSE={metrics.get('RMSSE', 'N/A'):.4f}, "
-          f"RMSSC={metrics.get('RMSSC', 'N/A'):.4f}, "
-          f"sMAPC={metrics.get('sMAPC', 'N/A'):.4f}")
-    
+    if metrics:
+        print(f"  Metrics: sMAPE={metrics.get('sMAPE', 'N/A')}, "
+              f"RMSSE={metrics.get('RMSSE', 'N/A')}, "
+              f"RMSSC={metrics.get('RMSSC', 'N/A')}, "
+              f"sMAPC={metrics.get('sMAPC', 'N/A')}")
+
     return run_id, metrics
 
 
 def save_results(results):
-    """Save all results to CSV."""
     if not results:
         return
-    fieldnames = ["experiment", "condition", "seed", "run_id", 
+    fieldnames = ["experiment", "condition", "seed", "run_id",
                   "sMAPE", "RMSSE", "RMSSC", "sMAPC"]
     with open(RESULTS_FILE, 'w', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -260,31 +238,31 @@ def save_results(results):
 
 
 def print_summary(results):
-    """Print a formatted summary table of all results."""
-    # Filter to only M3 test results (exclude M4 pre-training)
     core_results = [r for r in results if 'pretrain' not in r.get('condition', '')]
-    
+
     print(f"\n{'='*90}")
-    print(f"  THESIS RESULTS SUMMARY")
+    print(f"  N-BEATS-S TUNED RESULTS SUMMARY (hidden=256, blocks=20)")
     print(f"{'='*90}")
-    print(f"  {'Condition':<25} {'Seed':<6} {'sMAPE':<12} {'RMSSE':<12} {'RMSSC':<12} {'sMAPC':<12}")
+    print(f"  {'Condition':<30} {'Seed':<6} {'sMAPE':<12} {'RMSSE':<12} {'RMSSC':<12} {'sMAPC':<12}")
     print(f"  {'-'*85}")
-    
+
     for r in core_results:
         smape = f"{r['sMAPE']:.4f}" if 'sMAPE' in r else 'N/A'
         rmsse = f"{r['RMSSE']:.4f}" if 'RMSSE' in r else 'N/A'
         rmssc = f"{r['RMSSC']:.4f}" if 'RMSSC' in r else 'N/A'
         smapc = f"{r['sMAPC']:.4f}" if 'sMAPC' in r else 'N/A'
-        print(f"  {r['condition']:<25} {r['seed']:<6} {smape:<12} {rmsse:<12} {rmssc:<12} {smapc:<12}")
-    
-    # Compute mean ± std per condition
-    conditions = ["Scratch_Standard", "Scratch_Stabilized", "TL_Standard", "TL_Stabilized"]
+        print(f"  {r['condition']:<30} {r['seed']:<6} {smape:<12} {rmsse:<12} {rmssc:<12} {smapc:<12}")
+
+    conditions = ["Scratch_Standard", "Scratch_Stabilized",
+                   "TL_Standard", "TL_Stabilized",
+                   "ZeroShot_Standard", "ZeroShot_Stabilized"]
     print(f"\n  {'='*90}")
-    print(f"  MEAN ± STD (across seeds)")
+    print(f"  MEAN +/- STD (across seeds)")
     print(f"  {'='*90}")
-    print(f"  {'Condition':<25} {'sMAPE':<16} {'RMSSE':<16} {'RMSSC':<16} {'sMAPC':<16}")
+    print(f"  {'Condition':<30} {'sMAPE':<16} {'RMSSE':<16} {'RMSSC':<16} {'sMAPC':<16}")
     print(f"  {'-'*85}")
-    
+
+    import statistics
     for cond in conditions:
         cond_results = [r for r in core_results if r.get('condition') == cond]
         if not cond_results:
@@ -292,19 +270,17 @@ def print_summary(results):
         for metric in ["sMAPE", "RMSSE", "RMSSC", "sMAPC"]:
             values = [r[metric] for r in cond_results if metric in r]
             if values:
-                import statistics
                 mean = statistics.mean(values)
                 std = statistics.stdev(values) if len(values) > 1 else 0.0
                 if metric == "sMAPE":
-                    print(f"  {cond:<25} ", end="")
-                print(f"{mean:.4f}±{std:.4f}  ", end="")
+                    print(f"  {cond:<30} ", end="")
+                print(f"{mean:.4f}+/-{std:.4f} ", end="")
         print()
-    
+
     print(f"\n  KEY COMPARISON (thesis answer):")
     tl_stab = [r for r in core_results if r.get('condition') == 'TL_Stabilized']
     tl_std = [r for r in core_results if r.get('condition') == 'TL_Standard']
     if tl_stab and tl_std:
-        import statistics
         stab_smape = statistics.mean([r['sMAPE'] for r in tl_stab if 'sMAPE' in r])
         std_smape = statistics.mean([r['sMAPE'] for r in tl_std if 'sMAPE' in r])
         diff = std_smape - stab_smape
@@ -320,28 +296,27 @@ def print_summary(results):
 def main():
     overall_start = time.time()
     print(f"\n{'#'*70}")
-    print(f"  N-BEATS-S THESIS EXPERIMENT RUNNER")
+    print(f"  N-BEATS-S TUNED EXPERIMENT RUNNER")
+    print(f"  Architecture: hidden=256, n_blocks=20 (Van Belle et al., 2023)")
     print(f"  Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"  Total experiments: 18 (6 scratch + 6 pretrain + 6 finetune)")
-    print(f"  Estimated runtime: ~1.5-2 hours")
+    print(f"  Total experiments: 24 (6 scratch + 6 pretrain + 6 finetune + 6 zeroshot)")
+    print(f"  NOTE: Van Belle architecture (256/20) — M4 runs can take many hours")
     print(f"{'#'*70}")
-    
-    # Backup main.py
+
     shutil.copy2(MAIN_PY, MAIN_PY_BACKUP)
-    print(f"\n  Backed up main.py → main_backup.py")
-    
+    print(f"\n  Backed up main.py -> main_backup_tuned.py")
+
     results = []
     pretrain_model_ids = {}
-    
+
     try:
         # ===========================================================
-        # PHASE A: SCRATCH STANDARD (3 seeds) — ~90 seconds total
+        # PHASE A: SCRATCH STANDARD (3 seeds)
         # ===========================================================
         print(f"\n{'#'*70}")
-        print(f"  PHASE A: Scratch Standard (N-BEATS on M3)")
-        print(f"  Estimated: ~90 seconds")
+        print(f"  PHASE A: Scratch Standard (N-BEATS on M3, hidden=256, blocks=20)")
         print(f"{'#'*70}")
-        
+
         for seed in SEEDS:
             name = f"A_Scratch_Standard_seed{seed}"
             config = {
@@ -351,7 +326,7 @@ def main():
                 "seed": seed,
                 "lambda_stability": 0.0, "ema_decay": 0.0,
                 "learning_rate": "1e-3", "explr_gamma": 1.0,
-                "max_epochs": 10,
+                "max_epochs": 30,
             }
             run_id, metrics = run_experiment(name, config)
             if metrics:
@@ -359,16 +334,15 @@ def main():
                     "experiment": name, "condition": "Scratch_Standard",
                     "seed": seed, "run_id": run_id, **metrics
                 })
-            save_results(results)  # save after each run for safety
-        
+            save_results(results)
+
         # ===========================================================
-        # PHASE A: SCRATCH STABILIZED (3 seeds) — ~90 seconds total
+        # PHASE A: SCRATCH STABILIZED (3 seeds)
         # ===========================================================
         print(f"\n{'#'*70}")
-        print(f"  PHASE A: Scratch Stabilized (N-BEATS-S on M3)")
-        print(f"  Estimated: ~90 seconds")
+        print(f"  PHASE A: Scratch Stabilized (N-BEATS-S on M3, hidden=256, blocks=20)")
         print(f"{'#'*70}")
-        
+
         for seed in SEEDS:
             name = f"B_Scratch_Stabilized_seed{seed}"
             config = {
@@ -378,7 +352,7 @@ def main():
                 "seed": seed,
                 "lambda_stability": 0.02, "ema_decay": 0.99,
                 "learning_rate": "1e-3", "explr_gamma": 1.0,
-                "max_epochs": 10,
+                "max_epochs": 30,
             }
             run_id, metrics = run_experiment(name, config)
             if metrics:
@@ -387,15 +361,15 @@ def main():
                     "seed": seed, "run_id": run_id, **metrics
                 })
             save_results(results)
-        
+
         # ===========================================================
-        # PHASE B: TL STANDARD PRE-TRAIN ON M4 (3 seeds) — ~30-45 min
+        # PHASE B: TL STANDARD PRE-TRAIN ON M4 (3 seeds)
         # ===========================================================
         print(f"\n{'#'*70}")
-        print(f"  PHASE B: TL Standard Pre-train (N-BEATS on M4)")
-        print(f"  Estimated: ~30-45 minutes")
+        print(f"  PHASE B: TL Standard Pre-train (N-BEATS on M4, hidden=256, blocks=20)")
+        print(f"  NOTE: M4 runs can take many hours due to large eval set")
         print(f"{'#'*70}")
-        
+
         for seed in SEEDS:
             name = f"C_TL_Standard_pretrain_seed{seed}"
             config = {
@@ -405,7 +379,7 @@ def main():
                 "seed": seed,
                 "lambda_stability": 0.0, "ema_decay": 0.0,
                 "learning_rate": "1e-3", "explr_gamma": 1.0,
-                "max_epochs": 10,
+                "max_epochs": 30,
             }
             run_id, metrics = run_experiment(name, config)
             pretrain_model_ids[f"Standard_seed{seed}"] = run_id
@@ -416,15 +390,14 @@ def main():
                 })
             save_results(results)
             print(f"  >> Stored pretrain model_id for Standard seed{seed}: {run_id}")
-        
+
         # ===========================================================
-        # PHASE B: TL STABILIZED PRE-TRAIN ON M4 (3 seeds) — ~30-45 min
+        # PHASE B: TL STABILIZED PRE-TRAIN ON M4 (3 seeds)
         # ===========================================================
         print(f"\n{'#'*70}")
-        print(f"  PHASE B: TL Stabilized Pre-train (N-BEATS-S on M4)")
-        print(f"  Estimated: ~30-45 minutes")
+        print(f"  PHASE B: TL Stabilized Pre-train (N-BEATS-S on M4, hidden=256, blocks=20)")
         print(f"{'#'*70}")
-        
+
         for seed in SEEDS:
             name = f"D_TL_Stabilized_pretrain_seed{seed}"
             config = {
@@ -434,7 +407,7 @@ def main():
                 "seed": seed,
                 "lambda_stability": 0.02, "ema_decay": 0.99,
                 "learning_rate": "1e-3", "explr_gamma": 1.0,
-                "max_epochs": 10,
+                "max_epochs": 30,
             }
             run_id, metrics = run_experiment(name, config)
             pretrain_model_ids[f"Stabilized_seed{seed}"] = run_id
@@ -445,15 +418,14 @@ def main():
                 })
             save_results(results)
             print(f"  >> Stored pretrain model_id for Stabilized seed{seed}: {run_id}")
-        
+
         # ===========================================================
-        # PHASE C: TL STANDARD FINE-TUNE ON M3 (3 seeds) — ~15 min
+        # PHASE C: TL STANDARD FINE-TUNE ON M3 (3 seeds)
         # ===========================================================
         print(f"\n{'#'*70}")
-        print(f"  PHASE C: TL Standard Fine-tune (M4→M3, N-BEATS)")
-        print(f"  Estimated: ~15 minutes")
+        print(f"  PHASE C: TL Standard Fine-tune (M4->M3, hidden=256, blocks=20)")
         print(f"{'#'*70}")
-        
+
         for seed in SEEDS:
             model_id = pretrain_model_ids.get(f"Standard_seed{seed}")
             if not model_id:
@@ -467,7 +439,7 @@ def main():
                 "seed": seed,
                 "lambda_stability": 0.0, "ema_decay": 0.0,
                 "learning_rate": "1e-5", "explr_gamma": 0.97,
-                "max_epochs": 15,
+                "max_epochs": 20,
             }
             run_id, metrics = run_experiment(name, config)
             if metrics:
@@ -476,15 +448,14 @@ def main():
                     "seed": seed, "run_id": run_id, **metrics
                 })
             save_results(results)
-        
+
         # ===========================================================
-        # PHASE C: TL STABILIZED FINE-TUNE ON M3 (3 seeds) — ~15 min
+        # PHASE C: TL STABILIZED FINE-TUNE ON M3 (3 seeds)
         # ===========================================================
         print(f"\n{'#'*70}")
-        print(f"  PHASE C: TL Stabilized Fine-tune (M4→M3, N-BEATS-S)")
-        print(f"  Estimated: ~15 minutes")
+        print(f"  PHASE C: TL Stabilized Fine-tune (M4->M3, hidden=256, blocks=20)")
         print(f"{'#'*70}")
-        
+
         for seed in SEEDS:
             model_id = pretrain_model_ids.get(f"Stabilized_seed{seed}")
             if not model_id:
@@ -498,7 +469,7 @@ def main():
                 "seed": seed,
                 "lambda_stability": 0.02, "ema_decay": 0.99,
                 "learning_rate": "1e-5", "explr_gamma": 0.97,
-                "max_epochs": 15,
+                "max_epochs": 20,
             }
             run_id, metrics = run_experiment(name, config)
             if metrics:
@@ -507,18 +478,47 @@ def main():
                     "seed": seed, "run_id": run_id, **metrics
                 })
             save_results(results)
-    
+
+        # ===========================================================
+        # PHASE D: ZERO-SHOT (load M4 pretrained, test on M3, no training)
+        # ===========================================================
+        print(f"\n{'#'*70}")
+        print(f"  PHASE D: Zero-Shot (M4->test M3, no fine-tuning)")
+        print(f"{'#'*70}")
+
+        for condition_name, lambda_val, ema_val in [("Standard", 0.0, 0.0), ("Stabilized", 0.02, 0.99)]:
+            for seed in SEEDS:
+                model_id = pretrain_model_ids.get(f"{condition_name}_seed{seed}")
+                if not model_id:
+                    print(f"  SKIPPING: No pretrain model_id for {condition_name} seed{seed}")
+                    continue
+                name = f"E_ZeroShot_{condition_name}_seed{seed}"
+                config = {
+                    "dataset": "M3", "dataset_id": "M3M",
+                    "load_model": "True", "update_hparams": "True",
+                    "model_id": model_id,
+                    "seed": seed,
+                    "lambda_stability": lambda_val, "ema_decay": ema_val,
+                    "learning_rate": "1e-5", "explr_gamma": 1.0,
+                    "max_epochs": 0,  # ZERO SHOT: no training
+                }
+                run_id, metrics = run_experiment(name, config)
+                if metrics:
+                    results.append({
+                        "experiment": name, "condition": f"ZeroShot_{condition_name}",
+                        "seed": seed, "run_id": run_id, **metrics
+                    })
+                save_results(results)
+
     finally:
-        # Always restore main.py from backup
         if MAIN_PY_BACKUP.exists():
             shutil.copy2(MAIN_PY_BACKUP, MAIN_PY)
             print(f"\n  Restored main.py from backup")
-    
-    # Final summary
+
     total_time = time.time() - overall_start
     print(f"\n  Total runtime: {format_time(total_time)}")
     print(f"  Completed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    
+
     save_results(results)
     print_summary(results)
 

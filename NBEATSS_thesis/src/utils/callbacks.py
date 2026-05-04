@@ -1,15 +1,9 @@
-# LOAD MODULES
-
-# Standard library
 import csv
 import os
 
 from lightning import LightningModule, Trainer
-
-# Proprietary
 from src.utils.plotting import plot_forecasts
 
-# Third party
 import torch
 import numpy as np
 import pandas as pd
@@ -19,11 +13,7 @@ import wandb
 class PlotTestPredictions(Callback):
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
-        # `outputs` comes from `LightningModule.test_step`
-        # which corresponds to our model predictions in this case
-
-        # Let's log n sample plots
-        n = 1 # set to >4 to check M3M validation/test setup - last batch only contains 4 samples with a batch_size=32
+        n = 1
         x_test, _ = batch
 
         if len(x_test["encoder_cont"].shape) == 2:
@@ -42,15 +32,9 @@ class PlotTestPredictions(Callback):
         available_samples = np.linspace(0, rescaled_forecasts.shape[0]-1, rescaled_forecasts.shape[0])
         selected_samples = np.random.choice(available_samples, size=n, replace=False)
 
-        # plots = []
-        # example_counter = trainer.current_epoch*n-1
         for i in selected_samples.tolist():
-            # print(i)
-            # example_counter += 1
             plot = plot_forecasts(rescaled_lookback_window, rescaled_forecasts, rescaled_forecast_period, int(i), None)
-            # plots.append(plot)
-            # wandb.log({"plots": plot})
-            trainer.logger.experiment.log({"Examples": plot}) #step=example_counter
+            trainer.logger.experiment.log({"Examples": plot})
 
 class WriteForecastsToCSV(Callback):
     def __init__(self, wandb_logger, filename1='forecasts.csv', filename2='forecasts_lagged.csv'):
@@ -58,10 +42,8 @@ class WriteForecastsToCSV(Callback):
         self.filename1 = os.path.join(self.filepath, filename1)
         self.filename2 = os.path.join(self.filepath, filename2)
 
-        # Ensure the directory exists
         os.makedirs(self.filepath, exist_ok=True)
 
-        # Ensure the files are created and headers are written
         if not os.path.isfile(self.filename1):
             with open(self.filename1, mode='w', newline='') as file:
                 writer = csv.writer(file)
@@ -76,11 +58,9 @@ class WriteForecastsToCSV(Callback):
                 writer.writerow(headers)
 
     def on_test_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
-        # `outputs` comes from `LightningModule.test_step`
-        # which corresponds to our model predictions in this case
         x_test, _ = batch
 
-        # To handle batch_size = 1
+        # handle batch_size = 1
         if len(x_test["decoder_cont"].shape) == 2:
             x_test["decoder_cont"] = x_test["decoder_cont"].unsqueeze(0)
         if len(x_test["encoder_cont"].shape) == 2:
@@ -127,7 +107,6 @@ class WriteForecastsToCSV(Callback):
         df1 = pd.DataFrame(data1)
         df2 = pd.DataFrame(data2)
 
-        # Write batch results to CSV
         with open(self.filename1, mode='a', newline='') as file:
             df1.to_csv(file, header=False, index=False)
         with open(self.filename2, mode='a', newline='') as file:

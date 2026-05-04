@@ -1,10 +1,3 @@
-# LOAD MODULES
-
-# Standard library
-
-# Proprietary
-
-# Third party
 import torch
 
 def RMSSE_calculation(forecast: torch.Tensor, 

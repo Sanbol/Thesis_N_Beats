@@ -1,10 +1,6 @@
-# LOAD MODULES
-
-# Standard library
 from typing import Tuple, Optional
 import warnings
 
-# Proprietary
 from src.data.utils import (
     ts_train_val_test_split, 
     wide_to_long_univariate, 
@@ -15,7 +11,6 @@ from src.data.utils import (
     summary_scaler,
 )
 
-# Third party
 import os
 import pandas as pd
 from torch.utils.data import DataLoader
@@ -165,47 +160,4 @@ def load_data(
         num_workers
     )
     
-    return train_dataloader, validation_dataloader,  validation_dataloader_target, trainandvalidation_dataloader, test_dataloader_target
-
-# # Test sampling behavior
-# bincount_list = []
-# train_dataloader, validation_dataloader, validation_dataloader_target, trainandvalidation_dataloader, test_dataloader_target = load_data(
-#         test_mode_nrows=100,
-#         batch_size=32,
-#         forecasting_origin_range_multiplier=1) # 2000
-# for loop_id in range(1000):
-#     x_train, y_train = next(iter(train_dataloader))
-#     bincount_list.append(x_train['groups'].squeeze().bincount(minlength=100).numpy())
-# stacked_bincounts = np.stack(bincount_list,0)
-# np.mean(stacked_bincounts, 0)/32 # should all equal 1/100 = 1/test_mode_nrows
-
-# # Test output load_data
-# train_dataloader, validation_dataloader, validation_dataloader_target, trainandvalidation_dataloader, test_dataloader_target = load_data(
-#     test_mode_nrows=2,
-#     batch_size=2,
-#     forecasting_origin_range_multiplier=0)
-# x_train, y_train = next(iter(train_dataloader))
-# print("x_train =", x_train)
-# print("\ny_train =", y_train)
-# print("\nsizes of x_train =")
-# for key, value in x_train.items():
-#     if isinstance(value, torch.Tensor):
-#         print(f"\t{key} = {value.size()}")
-#     else:
-#         print(f"\t{key} = {len(value)}")
-# lookback_window = x_train["encoder_cont"][:,:,4]
-# lookback_window_lagged = x_train["encoder_cont"][:,:,5]
-# # lookback_window2 = x_train["encoder_target"][0]
-# # lookback_window_lagged2 = x_train["encoder_target"][1]
-# forecast_period = x_train['decoder_cont'][:,:,4]
-# forecast_period_lagged = x_train['decoder_cont'][:,:,5]
-# #forecast_period2 = x_train['decoder_target'][0]
-# #forecast_period_lagged2 = x_train['decoder_target'][1]
-# #forecast_period3 = y_train[0][0]
-# #forecast_period_lagged3 = y_train[0][1]
-# mean = x_train["decoder_cont"][:,:,0]
-# std = x_train["decoder_cont"][:,:,1]
-# # average one-step naive forecast computed in-sample 
-# # based on lookback window AND (non-zero) values before lookback window
-# scaling_constant_abs = x_train["encoder_cont"][:,-1,2]
-# scaling_constant_sq = x_train["encoder_cont"][:,-1,3]
+    return train_dataloader, validation_dataloader, validation_dataloader_target, trainandvalidation_dataloader, test_dataloader_target

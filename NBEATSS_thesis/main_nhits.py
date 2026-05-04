@@ -1,6 +1,6 @@
 import os
 
-from src.methods.NBEATSS import LitNBEATSS
+from src.methods.NHITSS import LitNHITSS
 from src.utils.callbacks import LoadModelWarning, WriteForecastsToCSV, PlotTestPredictions
 
 import lightning as L
@@ -12,10 +12,6 @@ import wandb
 import torch
 
 def main():
-    ##########################
-    # CHECK CONNECTION W WANDB
-    ##########################
-
     if os.environ.get("WANDB_MODE") != "offline":
         wandb.login()
     project_name = "NBEATSS_thesis"
@@ -25,57 +21,56 @@ def main():
     ##########################
 
     # Dataset
-    dataset = "M3" #"M4"
+    dataset = "M3"
     subset = "Monthly"
-    dataset_id = "M3M" #"M4M"
+    dataset_id = "M3M"
     validation_periods = 18
     test_periods = 18
     test_mode_nrows = None
 
     # Model
-    load_model = True #True or False
-    update_loaded_model_specific_training_and_eval_hparams = True #True or False, only relevant when a model is loaded
+    load_model = False
+    update_loaded_model_specific_training_and_eval_hparams = False
 
     # Model architecture - load existing model or specify model hyperparameters
     if load_model:
-        model_id = "dxpmjk9i"
-        checkpoint = "last" #"best" or "last"
-    else: # hparams below are ignored if model is loaded
+        model_id = ""
+        checkpoint = "last"
+    else:
         backcast_length_multiplier = 8
         forecast_length = 6
-        hidden_layer_units = 32 #512
-        n_blocks = 3 #5
+        hidden_layer_units = 32
+        n_blocks = 3
         n_blocks_shared = 1
         ensemble_size = 1
-        zero_mean = True # model argument as it affects model weights
-        unit_variance = True # model argument as it affects model weights
+        zero_mean = True
+        unit_variance = True
 
     # Model training and evaluation
-    eval_mode = 'test' #'validation' or 'test'
-    random_seed = 2956
+    eval_mode = 'test'
+    random_seed = 1
     ## Data hparams
-    forecasting_origin_range_multiplier = 1e6 #10
-    batch_size = 32 #512
-    num_workers = 0  # Set to 0 to avoid multiprocessing issues on Windows
+    forecasting_origin_range_multiplier = 1e6
+    batch_size = 32
+    num_workers = 0
     ## Model-specific training and evaluation hparams
-    if not load_model or update_loaded_model_specific_training_and_eval_hparams: 
-    # model-specific training and evaluation hparams below are ignored if (load_model == True) AND (update_loaded_model_specific_training_and_eval_hparams == False)
-        lambda_stability = 0.02  # Added regularization for forecast stability
+    if not load_model or update_loaded_model_specific_training_and_eval_hparams:
+        lambda_stability = 0.0
         enforce_nonnegative_forecast_metric_calculation = True
-        learning_rate = 1e-5  # Reduced for fine-tuning (prevents catastrophic forgetting)
-        explr_gamma = 0.97  # Learning rate decay: learning_rate*(explr_gamma)**epoch
-        ema_decay = 0.99  # Exponential moving average for smoother updates
+        learning_rate = 1e-3
+        explr_gamma = 1.0
+        ema_decay = 0.0
     ## Trainer hparams
     max_norm = 1.0
-    batches_per_epoch = 50 #250
-    patience = 1e6 #20 #1e6 for specific number of epochs
-    max_epochs = 15  # Extended for better convergence with lower learning rate
+    batches_per_epoch = 50
+    patience = 1e6
+    max_epochs = 10
 
     # Other
     if torch.cuda.is_available():
-        torch.set_float32_matmul_precision("medium") # if we run on GPU
-    save_forecasts = False #False
-    plot_forecasts = False #False
+        torch.set_float32_matmul_precision("medium")
+    save_forecasts = False
+    plot_forecasts = False
 
     ###################################################################################################
     # Do not change anything below this line - only use for running experiment w config specified above
@@ -83,25 +78,21 @@ def main():
 
     L.seed_everything(random_seed, workers=True)
 
-    # INIT MODEL
-    if load_model == True:
+    if load_model:
         path_to_checkpoint = project_name + "/" + model_id + "/checkpoints/" + checkpoint + ".ckpt"
-        NBEATSS = LitNBEATSS.load_from_checkpoint(path_to_checkpoint)
-        # Extract model-dependent hyperparameters required for data loading
-        forecast_length = NBEATSS.hparams["forecast_length"]
-        backcast_length_multiplier = NBEATSS.hparams["backcast_length_multiplier"]
-        zero_mean = NBEATSS.hparams["zero_mean"]
-        unit_variance = NBEATSS.hparams["unit_variance"]
-        if update_loaded_model_specific_training_and_eval_hparams == True:
-            # Update hyperparameters that do not affect the model architecture
-            NBEATSS.hparams["lambda_stability"]=lambda_stability
-            NBEATSS.hparams["enforce_nonnegative_forecast_metric_calculation"]=enforce_nonnegative_forecast_metric_calculation
-            NBEATSS.hparams["learning_rate"]=learning_rate
-            NBEATSS.hparams["explr_gamma"]=explr_gamma
-            NBEATSS.hparams["ema_decay"]=ema_decay
+        model = LitNHITSS.load_from_checkpoint(path_to_checkpoint)
+        forecast_length = model.hparams["forecast_length"]
+        backcast_length_multiplier = model.hparams["backcast_length_multiplier"]
+        zero_mean = model.hparams["zero_mean"]
+        unit_variance = model.hparams["unit_variance"]
+        if update_loaded_model_specific_training_and_eval_hparams:
+            model.hparams["lambda_stability"]=lambda_stability
+            model.hparams["enforce_nonnegative_forecast_metric_calculation"]=enforce_nonnegative_forecast_metric_calculation
+            model.hparams["learning_rate"]=learning_rate
+            model.hparams["explr_gamma"]=explr_gamma
+            model.hparams["ema_decay"]=ema_decay
     else:
-        NBEATSS = LitNBEATSS(
-            # Model hypers
+        model = LitNHITSS(
             backcast_length_multiplier=backcast_length_multiplier,
             forecast_length=forecast_length,
             hidden_layer_units=hidden_layer_units,
@@ -110,14 +101,12 @@ def main():
             ensemble_size=ensemble_size,
             zero_mean=zero_mean,
             unit_variance=unit_variance,
-            # Optim hypers
             lambda_stability=lambda_stability,
             enforce_nonnegative_forecast_metric_calculation=enforce_nonnegative_forecast_metric_calculation,
             learning_rate=learning_rate,
             explr_gamma=explr_gamma,
             ema_decay=ema_decay)
-        
-    # LOAD DATA(LOADERS)
+
     if dataset == "M3":
         from src.data.M3 import load_data
     if dataset == "M4":
@@ -150,17 +139,16 @@ def main():
             forecasting_origin_range_multiplier=int(forecasting_origin_range_multiplier),
             batch_size=batch_size,
             num_workers=num_workers)
-        
+
     wandb_logger = WandbLogger(project=project_name, log_model=True)
     modelsummary_callback = ModelSummary(max_depth=3)
-    if save_forecasts == True:
+    if save_forecasts:
         write_forecasts = WriteForecastsToCSV(wandb_logger=wandb_logger)
-    if plot_forecasts == True:
+    if plot_forecasts:
         plot_test_predictions = PlotTestPredictions()
-    if load_model == True:
+    if load_model:
         load_model_warning = LoadModelWarning(model_id=model_id)
 
-    # TRAIN AND EVALUATE MODEL
     print("Start model training and evaluation.")
     if eval_mode == 'validation':
         checkpoint_callback = ModelCheckpoint(filename="best", monitor="vloss", mode="min", save_last=True)
@@ -170,11 +158,11 @@ def main():
             checkpoint_callback,
             early_stop_callback,
         ]
-        if save_forecasts == True:
+        if save_forecasts:
             callbacks_list.append(write_forecasts)
-        if plot_forecasts == True:
+        if plot_forecasts:
             callbacks_list.append(plot_test_predictions)
-        if load_model == True:
+        if load_model:
             callbacks_list.append(load_model_warning)
         trainer = Trainer(
             callbacks=callbacks_list,
@@ -186,22 +174,22 @@ def main():
             max_epochs=max_epochs,
             limit_train_batches=batches_per_epoch,
         )
-        trainer.fit(NBEATSS, train_dataloader, validation_dataloader)
+        trainer.fit(model, train_dataloader, validation_dataloader)
         if max_epochs == 0:
-            trainer.test(NBEATSS, validation_dataloader_target, verbose=True)
+            trainer.test(model, validation_dataloader_target, verbose=True)
         else:
-            trainer.test(NBEATSS, validation_dataloader_target, "best", verbose=True)
+            trainer.test(model, validation_dataloader_target, "best", verbose=True)
     elif eval_mode == 'test':
         checkpoint_callback = ModelCheckpoint(save_last=True)
         callbacks_list = [
             modelsummary_callback,
             checkpoint_callback,
         ]
-        if save_forecasts == True:
+        if save_forecasts:
             callbacks_list.append(write_forecasts)
-        if plot_forecasts == True:
+        if plot_forecasts:
             callbacks_list.append(plot_test_predictions)
-        if load_model == True:
+        if load_model:
             callbacks_list.append(load_model_warning)
         trainer = Trainer(
             callbacks=callbacks_list,
@@ -213,11 +201,11 @@ def main():
             max_epochs=max_epochs,
             limit_train_batches=batches_per_epoch,
         )
-        trainer.fit(NBEATSS, trainandvalidation_dataloader)
+        trainer.fit(model, trainandvalidation_dataloader)
         if max_epochs == 0:
-            trainer.test(NBEATSS, test_dataloader_target, verbose=True)
+            trainer.test(model, test_dataloader_target, verbose=True)
         else:
-            trainer.test(NBEATSS, test_dataloader_target, "last", verbose=True)
+            trainer.test(model, test_dataloader_target, "last", verbose=True)
 
     if load_model:
         wandb_logger.experiment.config.update({

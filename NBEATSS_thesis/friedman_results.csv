@@ -1,0 +1,13 @@
+scenario,metric,n_series,n_models,chi2,p_value,significant
+Scratch,sMAPE,1428,4,556.4017,0.0,True
+Scratch,RMSSE,1428,4,531.3278,0.0,True
+Scratch,sMAPC,1428,4,2712.542,0.0,True
+Scratch,RMSSC,1428,4,2879.4059,0.0,True
+TL,sMAPE,1428,4,703.5235,0.0,True
+TL,RMSSE,1428,4,760.9297,0.0,True
+TL,sMAPC,1428,4,2867.5924,0.0,True
+TL,RMSSC,1428,4,2978.2563,0.0,True
+ZeroShot,sMAPE,1428,4,719.5067,0.0,True
+ZeroShot,RMSSE,1428,4,810.8299,0.0,True
+ZeroShot,sMAPC,1428,4,2958.2916,0.0,True
+ZeroShot,RMSSC,1428,4,3141.5277,0.0,True

@@ -1,0 +1,245 @@
+"""
+Extract per-series sMAPE, RMSSE, sMAPC, RMSSC for all conditions.
+
+Loads each trained checkpoint, runs it over the M3 test set, and records
+metrics at the individual series level.  Results are saved to:
+  per_series_results_raw.csv   — one row per (series, condition, seed, origin)
+  per_series_results.csv       — one row per (series, condition) after averaging
+                                 over origins AND seeds  (input to stat tests)
+"""
+
+import sys, os, glob, warnings
+sys.path.insert(0, '.')
+warnings.filterwarnings("ignore")
+
+import torch
+import pandas as pd
+import numpy as np
+
+from src.data.M3 import load_data
+from src.methods.NBEATSS import LitNBEATSS
+from src.methods.NHITSS import LitNHITSS
+
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+print(f"Device: {DEVICE}")
+
+# Map: (scenario, architecture, variant) -> list of (seed, run_id, ckpt_subdir)
+# ckpt_subdir is the directory prefix relative to cwd
+RUNS = {
+    ("Scratch",   "NBEATS", "Standard"):    [(1,"728vhs9i","NBEATSS_thesis"),(2,"sg1p770n","NBEATSS_thesis"),(3,"5tbs7bsc","NBEATSS_thesis")],
+    ("Scratch",   "NBEATS", "Stabilized"):  [(1,"6rf7lbtr","NBEATSS_thesis"),(2,"0quq13cu","NBEATSS_thesis"),(3,"26i6is8i","NBEATSS_thesis")],
+    ("TL",        "NBEATS", "Standard"):    [(1,"olpuict6","NBEATSS_thesis"),(2,"g1739tm9","NBEATSS_thesis"),(3,"0ly2i9nc","NBEATSS_thesis")],
+    ("TL",        "NBEATS", "Stabilized"):  [(1,"f1sogk2d","NBEATSS_thesis"),(2,"8z2tj2hb","NBEATSS_thesis"),(3,"2xgr067v","NBEATSS_thesis")],
+    # ZeroShot uses the M4-pretrain checkpoints (same seeds)
+    ("ZeroShot",  "NBEATS", "Standard"):    [(1,"r3z5zi5o","NBEATSS_thesis"),(2,"l668d1t3","NBEATSS_thesis"),(3,"07ui0b0o","NBEATSS_thesis")],
+    ("ZeroShot",  "NBEATS", "Stabilized"):  [(1,"koanw5w6","NBEATSS_thesis"),(2,"qfs01hl4","NBEATSS_thesis"),(3,"ar5h9f3a","NBEATSS_thesis")],
+    ("Scratch",   "NHITS",  "Standard"):    [(1,"5ns6e61g","NBEATSS_thesis/NBEATSS_thesis"),(2,"ff8s6zuv","NBEATSS_thesis/NBEATSS_thesis"),(3,"vfxwomcg","NBEATSS_thesis/NBEATSS_thesis")],
+    ("Scratch",   "NHITS",  "Stabilized"):  [(1,"w28arfti","NBEATSS_thesis/NBEATSS_thesis"),(2,"7fukab0u","NBEATSS_thesis/NBEATSS_thesis"),(3,"1iclyu3u","NBEATSS_thesis/NBEATSS_thesis")],
+    ("TL",        "NHITS",  "Standard"):    [(1,"3kwq259k","NBEATSS_thesis/NBEATSS_thesis"),(2,"2kaboxhy","NBEATSS_thesis/NBEATSS_thesis"),(3,"q7pavcp2","NBEATSS_thesis/NBEATSS_thesis")],
+    ("TL",        "NHITS",  "Stabilized"):  [(1,"d6ds0c6i","NBEATSS_thesis/NBEATSS_thesis"),(2,"l4hv8dd7","NBEATSS_thesis/NBEATSS_thesis"),(3,"t6zppv0e","NBEATSS_thesis/NBEATSS_thesis")],
+    # ZeroShot uses the M4-pretrain checkpoints
+    ("ZeroShot",  "NHITS",  "Standard"):    [(1,"w06fy6pb","NBEATSS_thesis/NBEATSS_thesis"),(2,"snjnen2l","NBEATSS_thesis/NBEATSS_thesis"),(3,"6j3599rd","NBEATSS_thesis/NBEATSS_thesis")],
+    ("ZeroShot",  "NHITS",  "Stabilized"):  [(1,"6bmgqqfx","NBEATSS_thesis/NBEATSS_thesis"),(2,"idjcbpqg","NBEATSS_thesis/NBEATSS_thesis"),(3,"zp3txdm1","NBEATSS_thesis/NBEATSS_thesis")],
+}
+
+
+def find_checkpoint(subdir, run_id):
+    base = f"{subdir}/{run_id}/checkpoints"
+    for name in ["last.ckpt", "best.ckpt"]:
+        p = f"{base}/{name}"
+        if os.path.exists(p):
+            return p
+    # Fall back to newest epoch checkpoint
+    candidates = sorted(glob.glob(f"{base}/epoch=*.ckpt"))
+    if candidates:
+        return candidates[-1]
+    raise FileNotFoundError(f"No checkpoint found in {base}")
+
+
+def load_model(arch, ckpt_path):
+    cls = LitNHITSS if arch == "NHITS" else LitNBEATSS
+    model = cls.load_from_checkpoint(ckpt_path, map_location=DEVICE)
+    model.eval()
+    model.to(DEVICE)
+    return model
+
+
+@torch.no_grad()
+def eval_model(model, test_dl):
+    """
+    Run model over test dataloader and return a list of dicts, one per sample:
+      group_id, sMAPE, RMSSE, sMAPC, RMSSC
+    """
+    rows = []
+    for x, _ in test_dl:
+        enc = x["encoder_cont"].to(DEVICE)   # (B, 48, 6)
+        dec = x["decoder_cont"].to(DEVICE)   # (B,  6, 6)
+        groups = x["groups"].to(DEVICE)       # (B,  1)
+
+        bs = enc.shape[0]
+
+        # Extract inputs (same indexing as NBEATSS._get_losses)
+        lookback        = enc[:, :, 4]        # (B, 48)
+        lookback_lagged = enc[:, :, 5]        # (B, 48)
+        mean_val        = dec[:, :, 0]        # (B,  6)
+        std_val         = dec[:, :, 1]        # (B,  6)
+        scaling_sq      = enc[:, -1, 3]       # (B,)
+        forecast_period = dec[:, :, 4]        # (B,  6) normalised actual
+
+        # Actual rescaled
+        actual = forecast_period * std_val + mean_val   # (B, 6)
+
+        # Forward pass — use EMA model (same as test_step)
+        fc_norm = model.ema_model[0](lookback)          # (B, 6)
+        fl_norm = model.ema_model[0](lookback_lagged)   # (B, 6)
+
+        fc = fc_norm * std_val + mean_val               # rescaled forecast
+        fl = fl_norm * std_val + mean_val               # rescaled lagged forecast
+
+        # sMAPE per sample: 200 * mean_h(|a-f| / (|a|+|f|+eps))
+        smape = 200 * torch.mean(
+            torch.abs(actual - fc) / (torch.abs(actual) + torch.abs(fc) + 1e-3),
+            dim=-1)                                     # (B,)
+
+        # RMSSE per sample
+        mse   = torch.mean((actual - fc)**2, dim=-1)   # (B,)
+        rmsse = torch.sqrt(mse / (scaling_sq + 1e-3))
+        rmsse = torch.clamp(rmsse, 0.0, 5.0)           # (B,)
+
+        # Compare: fc[:,:-1]  vs  fl[:,1:]  (same target steps, consecutive origins)
+        fc_ov = fc[:, :-1]                             # (B, 5)
+        fl_ov = fl[:, 1:]                              # (B, 5)
+
+        smapc = 200 * torch.mean(
+            torch.abs(fc_ov - fl_ov) / (torch.abs(fc_ov) + torch.abs(fl_ov) + 1e-3),
+            dim=-1)                                    # (B,)
+
+        mse_s  = torch.mean((fc_ov - fl_ov)**2, dim=-1)
+        rmssc  = torch.sqrt(mse_s / (scaling_sq + 1e-3))
+        rmssc  = torch.clamp(rmssc, 0.0, 5.0)         # (B,)
+
+        # Collect — move to CPU
+        gids   = groups.squeeze(-1).cpu().numpy()
+        smape_np  = smape.cpu().numpy()
+        rmsse_np  = rmsse.cpu().numpy()
+        smapc_np  = smapc.cpu().numpy()
+        rmssc_np  = rmssc.cpu().numpy()
+
+        for i in range(bs):
+            rows.append({
+                "series_id": int(gids[i]),
+                "sMAPE":  float(smape_np[i]),
+                "RMSSE":  float(rmsse_np[i]),
+                "sMAPC":  float(smapc_np[i]),
+                "RMSSC":  float(rmssc_np[i]),
+            })
+
+    return rows
+
+
+print("Loading M3 test dataloader…")
+_, _, _, _, test_dl = load_data(
+    subset="Monthly",
+    backcast_length_multiplier=8,
+    forecast_length=6,
+    validation_periods=18,
+    test_periods=18,
+    zero_mean=True,
+    unit_variance=True,
+    forecasting_origin_range_multiplier=1_000_000,
+    batch_size=32,
+    num_workers=0,
+)
+print(f"Test dataloader ready — {sum(len(b[0]['groups']) for b in test_dl):,} windows\n")
+
+
+all_records = []
+total = sum(len(v) for v in RUNS.values())
+done  = 0
+
+for (scenario, arch, variant), seed_list in RUNS.items():
+    for seed, run_id, subdir in seed_list:
+        done += 1
+        label = f"{scenario}_{arch}_{variant} seed={seed} ({run_id})"
+        try:
+            ckpt = find_checkpoint(subdir, run_id)
+        except FileNotFoundError as e:
+            print(f"  [{done}/{total}] SKIP {label} — {e}")
+            continue
+
+        print(f"  [{done}/{total}] {label}  ckpt={os.path.basename(ckpt)}")
+        model = load_model(arch, ckpt)
+
+        rows = eval_model(model, test_dl)
+        for r in rows:
+            r["scenario"]  = scenario
+            r["arch"]      = arch
+            r["variant"]   = variant
+            r["seed"]      = seed
+        all_records.extend(rows)
+
+        # Free GPU memory
+        del model
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
+print(f"\nCollected {len(all_records):,} sample-level records.")
+
+raw_df = pd.DataFrame(all_records)
+raw_df.to_csv("per_series_results_raw.csv", index=False)
+print("Saved per_series_results_raw.csv")
+
+# Step 1: average over origins within each (series, condition, seed)
+agg1 = (raw_df
+        .groupby(["series_id", "scenario", "arch", "variant", "seed"])[["sMAPE","RMSSE","sMAPC","RMSSC"]]
+        .mean()
+        .reset_index())
+
+# Step 2: average over seeds within each (series, condition)
+agg2 = (agg1
+        .groupby(["series_id", "scenario", "arch", "variant"])[["sMAPE","RMSSE","sMAPC","RMSSC"]]
+        .mean()
+        .reset_index())
+
+# Add a combined model column for stat tests
+agg2["model"] = agg2["arch"] + "_" + agg2["variant"]   # e.g. "NBEATS_Standard"
+agg2.to_csv("per_series_results.csv", index=False)
+print(f"Saved per_series_results.csv  ({len(agg2):,} rows)")
+
+print("\n=== Sanity check vs experiment_results_tuned.csv ===")
+known_nb = pd.read_csv("experiment_results_tuned.csv")
+known_nh = pd.read_csv("nhits_experiment_results_tuned.csv")
+
+condition_map = {
+    ("Scratch","NBEATS","Standard"):   "Scratch_Standard",
+    ("Scratch","NBEATS","Stabilized"): "Scratch_Stabilized",
+    ("TL","NBEATS","Standard"):        "TL_Standard",
+    ("TL","NBEATS","Stabilized"):      "TL_Stabilized",
+    ("ZeroShot","NBEATS","Standard"):  "ZeroShot_Standard",
+    ("ZeroShot","NBEATS","Stabilized"):"ZeroShot_Stabilized",
+    ("Scratch","NHITS","Standard"):    "NHITS_Scratch_Standard",
+    ("Scratch","NHITS","Stabilized"):  "NHITS_Scratch_Stabilized",
+    ("TL","NHITS","Standard"):         "NHITS_TL_Standard",
+    ("TL","NHITS","Stabilized"):       "NHITS_TL_Stabilized",
+    ("ZeroShot","NHITS","Standard"):   "NHITS_ZeroShot_Standard",
+    ("ZeroShot","NHITS","Stabilized"): "NHITS_ZeroShot_Stabilized",
+}
+known_all = pd.concat([known_nb, known_nh])
+
+print(f"{'Condition':<35} {'Metric':<8} {'Known':>8} {'Extracted':>10} {'Diff':>8}")
+print("-"*75)
+for (s,a,v), cond_name in condition_map.items():
+    subset = agg2[(agg2.scenario==s)&(agg2.arch==a)&(agg2.variant==v)]
+    known_sub = known_all[known_all.condition==cond_name]
+    if subset.empty or known_sub.empty:
+        continue
+    for metric in ["sMAPE","RMSSE","sMAPC","RMSSC"]:
+        if metric not in known_sub.columns:
+            continue
+        ext_val  = subset[metric].mean()
+        know_val = known_sub[metric].mean()
+        diff = ext_val - know_val
+        flag = " ✓" if abs(diff) < 0.1 else " ← CHECK"
+        print(f"{cond_name:<35} {metric:<8} {know_val:>8.4f} {ext_val:>10.4f} {diff:>+8.4f}{flag}")
+
+print("\nDone.")
