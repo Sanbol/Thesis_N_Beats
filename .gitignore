@@ -17,9 +17,8 @@ NBEATSS_thesis/data/processed/*.pt
 
 # Large raw M4 data files (exceed GitHub 100MB limit)
 NBEATSS_thesis/data/raw/Daily-train.csv
-NBEATSS_thesis/data/raw/Monthly-train.csv
 data/raw/Daily-train.csv
-data/raw/Monthly-train.csv
+# Monthly-train.csv is tracked via Git LFS
 
 # Python cache
 __pycache__/
