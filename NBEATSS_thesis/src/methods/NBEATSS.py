@@ -10,7 +10,7 @@ def num_parameters(model):
 
 class NBEATS_block(nn.Module):
     """
-    This is the code for one N-BEATS block.
+    This is the code for one N-BEATS block/units.
     It outputs:
     (1) a forecast for each time step in the forecast period);
     (2) and a backcast of the input to facilitate sequential analysis (feed residual to next block).
@@ -35,13 +35,13 @@ class NBEATS_block(nn.Module):
 
     def forward(self, x: torch.Tensor):
         # Shared
-        h1 = F.leaky_relu(self.fc1(x), negative_slope=0.01)
-        h2 = F.leaky_relu(self.fc2(h1), negative_slope=0.01)
-        h3 = F.leaky_relu(self.fc3(h2), negative_slope=0.01)
-        h4 = F.leaky_relu(self.fc4(h3), negative_slope=0.01)
+        h1 = F.relu(self.fc1(x))
+        h2 = F.relu(self.fc2(h1))
+        h3 = F.relu(self.fc3(h2))
+        h4 = F.relu(self.fc4(h3))
         # Task specific
-        h_backcast = F.leaky_relu(self.fc_backcast(h4), negative_slope=0.01)
-        h_forecast = F.leaky_relu(self.fc_forecast(h4), negative_slope=0.01)
+        h_backcast = F.relu(self.fc_backcast(h4))
+        h_forecast = F.relu(self.fc_forecast(h4))
         # Outputs - backcast + forecast for each period in forecast_length
         backcast = self.fc_backcast_output(h_backcast)
         forecast = self.fc_forecast_output(h_forecast)
@@ -322,7 +322,7 @@ class LitNBEATSS(LightningModule):
                 bs)
         
     def configure_optimizers(self):
-        optimizer = torch.optim.AdamW(self.parameters(), lr=self.hparams.learning_rate, amsgrad=False)
+        optimizer = torch.optim.AdamW(self.parameters(), lr=self.hparams.learning_rate, amsgrad=False, weight_decay=0.0)
         scheduler = {
             'scheduler': torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=self.hparams.explr_gamma),
             'interval': 'epoch',

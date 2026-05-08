@@ -58,13 +58,13 @@ class NHITS_block(nn.Module):
         # MaxPool1d expects (batch, channels, length)
         x_pooled = self.pool(x.unsqueeze(1)).squeeze(1)
 
-        h1 = F.leaky_relu(self.fc1(x_pooled), negative_slope=0.01)
-        h2 = F.leaky_relu(self.fc2(h1), negative_slope=0.01)
-        h3 = F.leaky_relu(self.fc3(h2), negative_slope=0.01)
-        h4 = F.leaky_relu(self.fc4(h3), negative_slope=0.01)
+        h1 = F.relu(self.fc1(x_pooled))
+        h2 = F.relu(self.fc2(h1))
+        h3 = F.relu(self.fc3(h2))
+        h4 = F.relu(self.fc4(h3))
 
-        h_backcast = F.leaky_relu(self.fc_backcast(h4), negative_slope=0.01)
-        h_forecast = F.leaky_relu(self.fc_forecast(h4), negative_slope=0.01)
+        h_backcast = F.relu(self.fc_backcast(h4))
+        h_forecast = F.relu(self.fc_forecast(h4))
 
         theta_backcast = self.fc_backcast_output(h_backcast)
         theta_forecast = self.fc_forecast_output(h_forecast)
@@ -367,7 +367,7 @@ class LitNHITSS(LightningModule):
                 bs)
         
     def configure_optimizers(self):
-        optimizer = torch.optim.AdamW(self.parameters(), lr=self.hparams.learning_rate, amsgrad=False)
+        optimizer = torch.optim.AdamW(self.parameters(), lr=self.hparams.learning_rate, amsgrad=False, weight_decay=0.0)
         scheduler = {
             'scheduler': torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=self.hparams.explr_gamma),
             'interval': 'epoch',

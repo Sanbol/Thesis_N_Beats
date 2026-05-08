@@ -36,7 +36,7 @@ MAIN_PY_BACKUP = BASE_DIR / "main_nhits_backup_tuned.py"
 WANDB_DIR = BASE_DIR / "wandb"
 RESULTS_FILE = BASE_DIR / "nhits_experiment_results_tuned.csv"
 
-SEEDS = [1, 2, 3]
+SEEDS = [1]
 
 # ============================================================
 # CONFIG TEMPLATE — TUNED: hidden=512, n_blocks=10
@@ -62,7 +62,7 @@ CONFIG_TEMPLATE = '''    ##########################
         model_id = "{model_id}"
         checkpoint = "last"
     else:
-        backcast_length_multiplier = 8
+        backcast_length_multiplier = {backcast_length_multiplier}
         forecast_length = 6
         hidden_layer_units = 512
         n_blocks = 10
@@ -76,7 +76,7 @@ CONFIG_TEMPLATE = '''    ##########################
     random_seed = {seed}
     ## Data hparams
     forecasting_origin_range_multiplier = 1e6
-    batch_size = 32
+    batch_size = 512
     num_workers = 0
     ## Model-specific training and evaluation hparams
     if not load_model or update_loaded_model_specific_training_and_eval_hparams:
@@ -87,7 +87,7 @@ CONFIG_TEMPLATE = '''    ##########################
         ema_decay = {ema_decay}
     ## Trainer hparams
     max_norm = 1.0
-    batches_per_epoch = 250
+    batches_per_epoch = 93
     patience = 1e6
     max_epochs = {max_epochs}
 
@@ -307,9 +307,10 @@ def main():
                 "load_model": "False", "update_hparams": "False",
                 "model_id": "",
                 "seed": seed,
+                "backcast_length_multiplier": 6,
                 "lambda_stability": 0.0, "ema_decay": 0.0,
                 "learning_rate": "1e-3", "explr_gamma": 1.0,
-                "max_epochs": 30,
+                "max_epochs": 155,
             }
             run_id, metrics = run_experiment(name, config)
             if metrics:
@@ -333,9 +334,10 @@ def main():
                 "load_model": "False", "update_hparams": "False",
                 "model_id": "",
                 "seed": seed,
-                "lambda_stability": 0.02, "ema_decay": 0.99,
+                "backcast_length_multiplier": 6,
+                "lambda_stability": 0.02, "ema_decay": 0.0,
                 "learning_rate": "1e-3", "explr_gamma": 1.0,
-                "max_epochs": 30,
+                "max_epochs": 155,
             }
             run_id, metrics = run_experiment(name, config)
             if metrics:
@@ -359,9 +361,10 @@ def main():
                 "load_model": "False", "update_hparams": "False",
                 "model_id": "",
                 "seed": seed,
+                "backcast_length_multiplier": 4,
                 "lambda_stability": 0.0, "ema_decay": 0.0,
                 "learning_rate": "1e-3", "explr_gamma": 1.0,
-                "max_epochs": 30,
+                "max_epochs": 155,
             }
             run_id, metrics = run_experiment(name, config)
             pretrain_model_ids[f"Standard_seed{seed}"] = run_id
@@ -387,9 +390,10 @@ def main():
                 "load_model": "False", "update_hparams": "False",
                 "model_id": "",
                 "seed": seed,
-                "lambda_stability": 0.02, "ema_decay": 0.99,
+                "backcast_length_multiplier": 4,
+                "lambda_stability": 0.02, "ema_decay": 0.0,
                 "learning_rate": "1e-3", "explr_gamma": 1.0,
-                "max_epochs": 30,
+                "max_epochs": 155,
             }
             run_id, metrics = run_experiment(name, config)
             pretrain_model_ids[f"Stabilized_seed{seed}"] = run_id
@@ -419,9 +423,10 @@ def main():
                 "load_model": "True", "update_hparams": "True",
                 "model_id": model_id,
                 "seed": seed,
+                "backcast_length_multiplier": 4,
                 "lambda_stability": 0.0, "ema_decay": 0.0,
                 "learning_rate": "1e-5", "explr_gamma": 0.97,
-                "max_epochs": 20,
+                "max_epochs": 30,
             }
             run_id, metrics = run_experiment(name, config)
             if metrics:
@@ -449,9 +454,10 @@ def main():
                 "load_model": "True", "update_hparams": "True",
                 "model_id": model_id,
                 "seed": seed,
-                "lambda_stability": 0.02, "ema_decay": 0.99,
+                "backcast_length_multiplier": 4,
+                "lambda_stability": 0.02, "ema_decay": 0.0,
                 "learning_rate": "1e-5", "explr_gamma": 0.97,
-                "max_epochs": 20,
+                "max_epochs": 30,
             }
             run_id, metrics = run_experiment(name, config)
             if metrics:
@@ -468,7 +474,7 @@ def main():
         print(f"  PHASE D: N-HiTS Zero-Shot (M4->test M3, no fine-tuning)")
         print(f"{'#'*70}")
 
-        for condition_name, lambda_val, ema_val in [("Standard", 0.0, 0.0), ("Stabilized", 0.02, 0.99)]:
+        for condition_name, lambda_val, ema_val in [("Standard", 0.0, 0.0), ("Stabilized", 0.02, 0.0)]:
             for seed in SEEDS:
                 model_id = pretrain_model_ids.get(f"{condition_name}_seed{seed}")
                 if not model_id:
@@ -480,6 +486,7 @@ def main():
                     "load_model": "True", "update_hparams": "True",
                     "model_id": model_id,
                     "seed": seed,
+                    "backcast_length_multiplier": 4,
                     "lambda_stability": lambda_val, "ema_decay": ema_val,
                     "learning_rate": "1e-5", "explr_gamma": 1.0,
                     "max_epochs": 0,  # ZERO SHOT: no training
