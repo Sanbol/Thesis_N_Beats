@@ -26,20 +26,18 @@ print(f"Device: {DEVICE}")
 # Map: (scenario, architecture, variant) -> list of (seed, run_id, ckpt_subdir)
 # ckpt_subdir is the directory prefix relative to cwd
 RUNS = {
-    ("Scratch",   "NBEATS", "Standard"):    [(1,"728vhs9i","NBEATSS_thesis"),(2,"sg1p770n","NBEATSS_thesis"),(3,"5tbs7bsc","NBEATSS_thesis")],
-    ("Scratch",   "NBEATS", "Stabilized"):  [(1,"6rf7lbtr","NBEATSS_thesis"),(2,"0quq13cu","NBEATSS_thesis"),(3,"26i6is8i","NBEATSS_thesis")],
-    ("TL",        "NBEATS", "Standard"):    [(1,"olpuict6","NBEATSS_thesis"),(2,"g1739tm9","NBEATSS_thesis"),(3,"0ly2i9nc","NBEATSS_thesis")],
-    ("TL",        "NBEATS", "Stabilized"):  [(1,"f1sogk2d","NBEATSS_thesis"),(2,"8z2tj2hb","NBEATSS_thesis"),(3,"2xgr067v","NBEATSS_thesis")],
-    # ZeroShot uses the M4-pretrain checkpoints (same seeds)
-    ("ZeroShot",  "NBEATS", "Standard"):    [(1,"r3z5zi5o","NBEATSS_thesis"),(2,"l668d1t3","NBEATSS_thesis"),(3,"07ui0b0o","NBEATSS_thesis")],
-    ("ZeroShot",  "NBEATS", "Stabilized"):  [(1,"koanw5w6","NBEATSS_thesis"),(2,"qfs01hl4","NBEATSS_thesis"),(3,"ar5h9f3a","NBEATSS_thesis")],
-    ("Scratch",   "NHITS",  "Standard"):    [(1,"5ns6e61g","NBEATSS_thesis/NBEATSS_thesis"),(2,"ff8s6zuv","NBEATSS_thesis/NBEATSS_thesis"),(3,"vfxwomcg","NBEATSS_thesis/NBEATSS_thesis")],
-    ("Scratch",   "NHITS",  "Stabilized"):  [(1,"w28arfti","NBEATSS_thesis/NBEATSS_thesis"),(2,"7fukab0u","NBEATSS_thesis/NBEATSS_thesis"),(3,"1iclyu3u","NBEATSS_thesis/NBEATSS_thesis")],
-    ("TL",        "NHITS",  "Standard"):    [(1,"3kwq259k","NBEATSS_thesis/NBEATSS_thesis"),(2,"2kaboxhy","NBEATSS_thesis/NBEATSS_thesis"),(3,"q7pavcp2","NBEATSS_thesis/NBEATSS_thesis")],
-    ("TL",        "NHITS",  "Stabilized"):  [(1,"d6ds0c6i","NBEATSS_thesis/NBEATSS_thesis"),(2,"l4hv8dd7","NBEATSS_thesis/NBEATSS_thesis"),(3,"t6zppv0e","NBEATSS_thesis/NBEATSS_thesis")],
-    # ZeroShot uses the M4-pretrain checkpoints
-    ("ZeroShot",  "NHITS",  "Standard"):    [(1,"w06fy6pb","NBEATSS_thesis/NBEATSS_thesis"),(2,"snjnen2l","NBEATSS_thesis/NBEATSS_thesis"),(3,"6j3599rd","NBEATSS_thesis/NBEATSS_thesis")],
-    ("ZeroShot",  "NHITS",  "Stabilized"):  [(1,"6bmgqqfx","NBEATSS_thesis/NBEATSS_thesis"),(2,"idjcbpqg","NBEATSS_thesis/NBEATSS_thesis"),(3,"zp3txdm1","NBEATSS_thesis/NBEATSS_thesis")],
+    ("Scratch",   "NBEATS", "Standard"):    [(1,"zraud12i","NBEATSS_thesis")],
+    ("Scratch",   "NBEATS", "Stabilized"):  [(1,"fffhryej","NBEATSS_thesis")],
+    ("TL",        "NBEATS", "Standard"):    [(1,"5emfx9rz","NBEATSS_thesis")],
+    ("TL",        "NBEATS", "Stabilized"):  [(1,"311ywt1t","NBEATSS_thesis")],
+    ("ZeroShot",  "NBEATS", "Standard"):    [(1,"4lf1k5v9","NBEATSS_thesis")],
+    ("ZeroShot",  "NBEATS", "Stabilized"):  [(1,"5e64f54n","NBEATSS_thesis")],
+    ("Scratch",   "NHITS",  "Standard"):    [(1,"2u03kymc","NBEATSS_thesis")],
+    ("Scratch",   "NHITS",  "Stabilized"):  [(1,"v88b9jqe","NBEATSS_thesis")],
+    ("TL",        "NHITS",  "Standard"):    [(1,"6rvcpjjp","NBEATSS_thesis")],
+    ("TL",        "NHITS",  "Stabilized"):  [(1,"cob25fri","NBEATSS_thesis")],
+    ("ZeroShot",  "NHITS",  "Standard"):    [(1,"v0hrzes0","NBEATSS_thesis")],
+    ("ZeroShot",  "NHITS",  "Stabilized"):  [(1,"5gl0atq7","NBEATSS_thesis")],
 }
 
 
@@ -137,20 +135,29 @@ def eval_model(model, test_dl):
     return rows
 
 
-print("Loading M3 test dataloader…")
-_, _, _, _, test_dl = load_data(
-    subset="Monthly",
-    backcast_length_multiplier=8,
-    forecast_length=6,
-    validation_periods=18,
-    test_periods=18,
-    zero_mean=True,
-    unit_variance=True,
-    forecasting_origin_range_multiplier=1_000_000,
-    batch_size=32,
-    num_workers=0,
-)
-print(f"Test dataloader ready — {sum(len(b[0]['groups']) for b in test_dl):,} windows\n")
+print("Loading M3 test dataloaders (two variants)…")
+
+def make_dl(bs_mult):
+    _, _, _, _, dl = load_data(
+        subset="Monthly",
+        backcast_length_multiplier=bs_mult,
+        forecast_length=6,
+        validation_periods=18,
+        test_periods=18,
+        zero_mean=True,
+        unit_variance=True,
+        forecasting_origin_range_multiplier=1_000_000,
+        batch_size=32,
+        num_workers=0,
+    )
+    return dl
+
+print("  Loading bs_mult=6 (Scratch models, backcast_length=36)…")
+test_dl_6 = make_dl(6)
+print("  Loading bs_mult=4 (TL/ZeroShot models, backcast_length=24)…")
+test_dl_4 = make_dl(4)
+print(f"  bs_mult=6: {sum(len(b[0]['groups']) for b in test_dl_6):,} windows")
+print(f"  bs_mult=4: {sum(len(b[0]['groups']) for b in test_dl_4):,} windows\n")
 
 
 all_records = []
@@ -170,6 +177,8 @@ for (scenario, arch, variant), seed_list in RUNS.items():
         print(f"  [{done}/{total}] {label}  ckpt={os.path.basename(ckpt)}")
         model = load_model(arch, ckpt)
 
+        test_dl = test_dl_6 if scenario == "Scratch" else test_dl_4
+        test_dl = test_dl_6 if scenario == "Scratch" else test_dl_4
         rows = eval_model(model, test_dl)
         for r in rows:
             r["scenario"]  = scenario

@@ -1,0 +1,4 @@
+learning_rate,seed,run_id,sMAPE,RMSSE,RMSSC,sMAPC
+0.0003,1,fa4mdcj9,,,,
+0.001,1,bbqh1eq7,,,,
+0.003,1,5qbin6lz,,,,
