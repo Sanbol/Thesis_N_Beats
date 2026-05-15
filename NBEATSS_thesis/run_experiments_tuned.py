@@ -317,7 +317,7 @@ def main():
         print(f"  PHASE A: Scratch Standard (N-BEATS on M3, hidden=256, blocks=20)")
         print(f"{'#'*70}")
 
-        for seed in SEEDS:
+        for seed in []:  # SKIP STANDARD - using May 11 results
             name = f"A_Scratch_Standard_seed{seed}"
             config = {
                 "dataset": "M3", "dataset_id": "M3M",
@@ -352,7 +352,7 @@ def main():
                 "model_id": "",
                 "seed": seed,
                 "backcast_length_multiplier": 6,
-                "lambda_stability": 0.02, "ema_decay": 0.0,
+                "lambda_stability": 0.15, "ema_decay": 0.0,
                 "learning_rate": "1e-3", "explr_gamma": 1.0,
                 "max_epochs": 155,
             }
@@ -372,7 +372,7 @@ def main():
         print(f"  NOTE: M4 runs can take many hours due to large eval set")
         print(f"{'#'*70}")
 
-        for seed in SEEDS:
+        for seed in []:  # SKIP STANDARD - using May 11 results
             name = f"C_TL_Standard_pretrain_seed{seed}"
             config = {
                 "dataset": "M4", "dataset_id": "M4M",
@@ -409,7 +409,7 @@ def main():
                 "model_id": "",
                 "seed": seed,
                 "backcast_length_multiplier": 4,
-                "lambda_stability": 0.02, "ema_decay": 0.0,
+                "lambda_stability": 0.15, "ema_decay": 0.0,
                 "learning_rate": "1e-3", "explr_gamma": 1.0,
                 "max_epochs": 155,
             }
@@ -430,7 +430,7 @@ def main():
         print(f"  PHASE C: TL Standard Fine-tune (M4->M3, hidden=256, blocks=20)")
         print(f"{'#'*70}")
 
-        for seed in SEEDS:
+        for seed in []:  # SKIP STANDARD - using May 11 results
             model_id = pretrain_model_ids.get(f"Standard_seed{seed}")
             if not model_id:
                 print(f"  SKIPPING: No pretrain model_id for Standard seed{seed}")
@@ -473,7 +473,7 @@ def main():
                 "model_id": model_id,
                 "seed": seed,
                 "backcast_length_multiplier": 4,
-                "lambda_stability": 0.02, "ema_decay": 0.0,
+                "lambda_stability": 0.15, "ema_decay": 0.0,
                 "learning_rate": "1e-5", "explr_gamma": 0.97,
                 "max_epochs": 30,
             }
@@ -492,7 +492,7 @@ def main():
         print(f"  PHASE D: Zero-Shot (M4->test M3, no fine-tuning)")
         print(f"{'#'*70}")
 
-        for condition_name, lambda_val, ema_val in [("Standard", 0.0, 0.0), ("Stabilized", 0.02, 0.0)]:
+        for condition_name, lambda_val, ema_val in [("Standard", 0.0, 0.0), ("Stabilized", 0.15, 0.0)]:
             for seed in SEEDS:
                 model_id = pretrain_model_ids.get(f"{condition_name}_seed{seed}")
                 if not model_id:

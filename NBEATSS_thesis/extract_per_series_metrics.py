@@ -27,17 +27,17 @@ print(f"Device: {DEVICE}")
 # ckpt_subdir is the directory prefix relative to cwd
 RUNS = {
     ("Scratch",   "NBEATS", "Standard"):    [(1,"zraud12i","NBEATSS_thesis")],
-    ("Scratch",   "NBEATS", "Stabilized"):  [(1,"fffhryej","NBEATSS_thesis")],
+    ("Scratch",   "NBEATS", "Stabilized"):  [(1,"rj0o61ve","NBEATSS_thesis")],
     ("TL",        "NBEATS", "Standard"):    [(1,"5emfx9rz","NBEATSS_thesis")],
-    ("TL",        "NBEATS", "Stabilized"):  [(1,"311ywt1t","NBEATSS_thesis")],
+    ("TL",        "NBEATS", "Stabilized"):  [(1,"kzac1sps","NBEATSS_thesis")],
     ("ZeroShot",  "NBEATS", "Standard"):    [(1,"4lf1k5v9","NBEATSS_thesis")],
-    ("ZeroShot",  "NBEATS", "Stabilized"):  [(1,"5e64f54n","NBEATSS_thesis")],
+    ("ZeroShot",  "NBEATS", "Stabilized"):  [(1,"j99n8rrl","NBEATSS_thesis")],
     ("Scratch",   "NHITS",  "Standard"):    [(1,"2u03kymc","NBEATSS_thesis")],
-    ("Scratch",   "NHITS",  "Stabilized"):  [(1,"v88b9jqe","NBEATSS_thesis")],
+    ("Scratch",   "NHITS",  "Stabilized"):  [(1,"outh05z5","NBEATSS_thesis")],
     ("TL",        "NHITS",  "Standard"):    [(1,"6rvcpjjp","NBEATSS_thesis")],
-    ("TL",        "NHITS",  "Stabilized"):  [(1,"cob25fri","NBEATSS_thesis")],
+    ("TL",        "NHITS",  "Stabilized"):  [(1,"oodho4ts","NBEATSS_thesis")],
     ("ZeroShot",  "NHITS",  "Standard"):    [(1,"v0hrzes0","NBEATSS_thesis")],
-    ("ZeroShot",  "NHITS",  "Stabilized"):  [(1,"5gl0atq7","NBEATSS_thesis")],
+    ("ZeroShot",  "NHITS",  "Stabilized"):  [(1,"yyvya5ql","NBEATSS_thesis")],
 }
 
 

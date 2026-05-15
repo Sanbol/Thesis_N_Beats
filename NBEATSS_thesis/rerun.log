@@ -1,0 +1,265 @@
+RERUN lambda=0.15: Thu May 14 11:47:05 UTC 2026
+
+######################################################################
+  N-BEATS-S TUNED EXPERIMENT RUNNER
+  Architecture: hidden=256, n_blocks=20 (Van Belle et al., 2023)
+  Started: 2026-05-14 11:47:06
+  Total experiments: 24 (6 scratch + 6 pretrain + 6 finetune + 6 zeroshot)
+  NOTE: Van Belle architecture (256/20) — M4 runs can take many hours
+######################################################################
+
+  Backed up main.py -> main_backup_tuned.py
+
+######################################################################
+  PHASE A: Scratch Standard (N-BEATS on M3, hidden=256, blocks=20)
+######################################################################
+
+======================================================================
+  RUNNING: A_Scratch_Standard_seed1
+  Config: dataset=M3, lambda=0.0, ema=0.0, lr=1e-3, epochs=155, seed=1, load_model=False
+======================================================================
+RESTART Thu May 14 13:19:12 UTC 2026
+
+######################################################################
+  N-BEATS-S TUNED EXPERIMENT RUNNER
+  Architecture: hidden=256, n_blocks=20 (Van Belle et al., 2023)
+  Started: 2026-05-14 13:19:13
+  Total experiments: 24 (6 scratch + 6 pretrain + 6 finetune + 6 zeroshot)
+  NOTE: Van Belle architecture (256/20) — M4 runs can take many hours
+######################################################################
+
+  Backed up main.py -> main_backup_tuned.py
+
+######################################################################
+  PHASE A: Scratch Standard (N-BEATS on M3, hidden=256, blocks=20)
+######################################################################
+
+======================================================================
+  RUNNING: A_Scratch_Standard_seed1
+  Config: dataset=M3, lambda=0.0, ema=0.0, lr=1e-3, epochs=155, seed=1, load_model=False
+======================================================================
+  Completed in 02:19:55
+  Run ID: g5vyy1gg
+
+######################################################################
+  PHASE A: Scratch Stabilized (N-BEATS-S on M3, hidden=256, blocks=20)
+######################################################################
+
+======================================================================
+  RUNNING: B_Scratch_Stabilized_seed1
+  Config: dataset=M3, lambda=0.15, ema=0.0, lr=1e-3, epochs=155, seed=1, load_model=False
+======================================================================
+RESTART Thu May 14 18:24:09 UTC 2026
+
+######################################################################
+  N-BEATS-S TUNED EXPERIMENT RUNNER
+  Architecture: hidden=256, n_blocks=20 (Van Belle et al., 2023)
+  Started: 2026-05-14 18:24:09
+  Total experiments: 24 (6 scratch + 6 pretrain + 6 finetune + 6 zeroshot)
+  NOTE: Van Belle architecture (256/20) — M4 runs can take many hours
+######################################################################
+
+  Backed up main.py -> main_backup_tuned.py
+
+######################################################################
+  PHASE A: Scratch Standard (N-BEATS on M3, hidden=256, blocks=20)
+######################################################################
+
+======================================================================
+  RUNNING: A_Scratch_Standard_seed1
+  Config: dataset=M3, lambda=0.0, ema=0.0, lr=1e-3, epochs=155, seed=1, load_model=False
+======================================================================
+NBEATS DONE: Thu May 14 19:17:07 UTC 2026
+
+######################################################################
+  N-HiTS-S TUNED EXPERIMENT RUNNER
+  Architecture: hidden=512, n_blocks=10 (M4 HP-tuned)
+  Started: 2026-05-14 19:17:07
+  Total experiments: 24 (6 scratch + 6 pretrain + 6 finetune + 6 zeroshot)
+######################################################################
+
+  Backed up main_nhits.py -> main_nhits_backup_tuned.py
+
+######################################################################
+  PHASE A: N-HiTS Scratch Standard (on M3, hidden=512, blocks=10)
+######################################################################
+
+======================================================================
+  RUNNING: NHITS_A_Scratch_Standard_seed1
+  Config: dataset=M3, lambda=0.0, ema=0.0, lr=1e-3, epochs=155, seed=1, load_model=False
+======================================================================
+STABILIZED-ONLY RERUN STARTED: Thu May 14 19:59:32 UTC 2026
+
+######################################################################
+  N-BEATS-S TUNED EXPERIMENT RUNNER
+  Architecture: hidden=256, n_blocks=20 (Van Belle et al., 2023)
+  Started: 2026-05-14 19:59:33
+  Total experiments: 24 (6 scratch + 6 pretrain + 6 finetune + 6 zeroshot)
+  NOTE: Van Belle architecture (256/20) — M4 runs can take many hours
+######################################################################
+
+  Backed up main.py -> main_backup_tuned.py
+
+######################################################################
+  PHASE A: Scratch Standard (N-BEATS on M3, hidden=256, blocks=20)
+######################################################################
+
+######################################################################
+  PHASE A: Scratch Stabilized (N-BEATS-S on M3, hidden=256, blocks=20)
+######################################################################
+
+======================================================================
+  RUNNING: B_Scratch_Stabilized_seed1
+  Config: dataset=M3, lambda=0.15, ema=0.0, lr=1e-3, epochs=155, seed=1, load_model=False
+======================================================================
+  Completed in 02:22:14
+  Run ID: rj0o61ve
+
+######################################################################
+  PHASE B: TL Standard Pre-train (N-BEATS on M4, hidden=256, blocks=20)
+  NOTE: M4 runs can take many hours due to large eval set
+######################################################################
+
+######################################################################
+  PHASE B: TL Stabilized Pre-train (N-BEATS-S on M4, hidden=256, blocks=20)
+######################################################################
+
+======================================================================
+  RUNNING: D_TL_Stabilized_pretrain_seed1
+  Config: dataset=M4, lambda=0.15, ema=0.0, lr=1e-3, epochs=155, seed=1, load_model=False
+======================================================================
+  Completed in 02:43:43
+  Run ID: j99n8rrl
+  >> Stored pretrain model_id for Stabilized seed1: j99n8rrl
+
+######################################################################
+  PHASE C: TL Standard Fine-tune (M4->M3, hidden=256, blocks=20)
+######################################################################
+
+######################################################################
+  PHASE C: TL Stabilized Fine-tune (M4->M3, hidden=256, blocks=20)
+######################################################################
+
+======================================================================
+  RUNNING: D_TL_Stabilized_finetune_seed1
+  Config: dataset=M3, lambda=0.15, ema=0.0, lr=1e-5, epochs=30, seed=1, load_model=True
+======================================================================
+  Completed in 00:27:54
+  Run ID: kzac1sps
+
+######################################################################
+  PHASE D: Zero-Shot (M4->test M3, no fine-tuning)
+######################################################################
+  SKIPPING: No pretrain model_id for Standard seed1
+
+======================================================================
+  RUNNING: E_ZeroShot_Stabilized_seed1
+  Config: dataset=M3, lambda=0.15, ema=0.0, lr=1e-5, epochs=0, seed=1, load_model=True
+======================================================================
+  Completed in 00:00:25
+  Run ID: 8mki346f
+
+  Restored main.py from backup
+
+  Total runtime: 05:34:17
+  Completed: 2026-05-15 01:33:50
+
+==========================================================================================
+  N-BEATS-S TUNED RESULTS SUMMARY (hidden=256, blocks=20)
+==========================================================================================
+  Condition                      Seed   sMAPE        RMSSE        RMSSC        sMAPC       
+  -------------------------------------------------------------------------------------
+
+  ==========================================================================================
+  MEAN +/- STD (across seeds)
+  ==========================================================================================
+  Condition                      sMAPE            RMSSE            RMSSC            sMAPC           
+  -------------------------------------------------------------------------------------
+
+  KEY COMPARISON (thesis answer):
+NBEATS DONE: Fri May 15 01:33:50 UTC 2026
+
+######################################################################
+  N-HiTS-S TUNED EXPERIMENT RUNNER
+  Architecture: hidden=512, n_blocks=10 (M4 HP-tuned)
+  Started: 2026-05-15 01:33:51
+  Total experiments: 24 (6 scratch + 6 pretrain + 6 finetune + 6 zeroshot)
+######################################################################
+
+  Backed up main_nhits.py -> main_nhits_backup_tuned.py
+
+######################################################################
+  PHASE A: N-HiTS Scratch Standard (on M3, hidden=512, blocks=10)
+######################################################################
+
+######################################################################
+  PHASE A: N-HiTS Scratch Stabilized (on M3, hidden=512, blocks=10)
+######################################################################
+
+======================================================================
+  RUNNING: NHITS_B_Scratch_Stabilized_seed1
+  Config: dataset=M3, lambda=0.15, ema=0.0, lr=1e-3, epochs=155, seed=1, load_model=False
+======================================================================
+  Completed in 02:14:07
+  Run ID: outh05z5
+
+######################################################################
+  PHASE B: N-HiTS TL Standard Pre-train (on M4, hidden=512, blocks=10)
+######################################################################
+
+######################################################################
+  PHASE B: N-HiTS TL Stabilized Pre-train (on M4, hidden=512, blocks=10)
+######################################################################
+
+======================================================================
+  RUNNING: NHITS_D_TL_Stabilized_pretrain_seed1
+  Config: dataset=M4, lambda=0.15, ema=0.0, lr=1e-3, epochs=155, seed=1, load_model=False
+======================================================================
+  Completed in 02:37:32
+  Run ID: yyvya5ql
+  >> Stored pretrain model_id for Stabilized seed1: yyvya5ql
+
+######################################################################
+  PHASE C: N-HiTS TL Standard Fine-tune (M4->M3, hidden=512, blocks=10)
+######################################################################
+
+######################################################################
+  PHASE C: N-HiTS TL Stabilized Fine-tune (M4->M3, hidden=512, blocks=10)
+######################################################################
+
+======================================================================
+  RUNNING: NHITS_D_TL_Stabilized_finetune_seed1
+  Config: dataset=M3, lambda=0.15, ema=0.0, lr=1e-5, epochs=30, seed=1, load_model=True
+======================================================================
+  Completed in 00:26:11
+  Run ID: oodho4ts
+
+######################################################################
+  PHASE D: N-HiTS Zero-Shot (M4->test M3, no fine-tuning)
+######################################################################
+  SKIPPING: No pretrain model_id for Standard seed1
+
+======================================================================
+  RUNNING: NHITS_E_ZeroShot_Stabilized_seed1
+  Config: dataset=M3, lambda=0.15, ema=0.0, lr=1e-5, epochs=0, seed=1, load_model=True
+======================================================================
+  Completed in 00:00:25
+  Run ID: j66h5jt7
+
+  Restored main_nhits.py from backup
+
+  Total runtime: 05:18:16
+  Completed: 2026-05-15 06:52:08
+
+==========================================================================================
+  N-HiTS-S TUNED RESULTS SUMMARY (hidden=512, blocks=10)
+==========================================================================================
+  Condition                      Seed   sMAPE        RMSSE        RMSSC        sMAPC       
+  -------------------------------------------------------------------------------------
+
+  ==========================================================================================
+  MEAN +/- STD (across seeds)
+  ==========================================================================================
+  Condition                      sMAPE            RMSSE            RMSSC            sMAPC           
+  -------------------------------------------------------------------------------------
+ALL DONE: Fri May 15 06:52:08 UTC 2026

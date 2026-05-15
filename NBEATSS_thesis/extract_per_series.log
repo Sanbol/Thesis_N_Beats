@@ -1,0 +1,63 @@
+Device: cuda
+Loading M3 test dataloaders (two variants)…
+  Loading bs_mult=6 (Scratch models, backcast_length=36)…
+TimeSeriesDataSets already exists!
+  Loading bs_mult=4 (TL/ZeroShot models, backcast_length=24)…
+TimeSeriesDataSets already exists!
+  bs_mult=6: 18,564 windows
+  bs_mult=4: 18,564 windows
+
+  [1/12] Scratch_NBEATS_Standard seed=1 (zraud12i)  ckpt=last.ckpt
+  [2/12] Scratch_NBEATS_Stabilized seed=1 (rj0o61ve)  ckpt=last.ckpt
+  [3/12] TL_NBEATS_Standard seed=1 (5emfx9rz)  ckpt=last.ckpt
+  [4/12] TL_NBEATS_Stabilized seed=1 (kzac1sps)  ckpt=last.ckpt
+  [5/12] ZeroShot_NBEATS_Standard seed=1 (4lf1k5v9)  ckpt=last.ckpt
+  [6/12] ZeroShot_NBEATS_Stabilized seed=1 (j99n8rrl)  ckpt=last.ckpt
+  [7/12] Scratch_NHITS_Standard seed=1 (2u03kymc)  ckpt=last.ckpt
+  [8/12] Scratch_NHITS_Stabilized seed=1 (outh05z5)  ckpt=last.ckpt
+  [9/12] TL_NHITS_Standard seed=1 (6rvcpjjp)  ckpt=last.ckpt
+  [10/12] TL_NHITS_Stabilized seed=1 (oodho4ts)  ckpt=last.ckpt
+  [11/12] ZeroShot_NHITS_Standard seed=1 (v0hrzes0)  ckpt=last.ckpt
+  [12/12] ZeroShot_NHITS_Stabilized seed=1 (yyvya5ql)  ckpt=last.ckpt
+
+Collected 222,768 sample-level records.
+Saved per_series_results_raw.csv
+Saved per_series_results.csv  (17,136 rows)
+
+=== Sanity check vs experiment_results_tuned.csv ===
+Condition                           Metric      Known  Extracted     Diff
+---------------------------------------------------------------------------
+Scratch_Standard                    sMAPE     12.5239    12.5239  +0.0000 ✓
+Scratch_Standard                    RMSSE      1.1125     1.1127  +0.0001 ✓
+Scratch_Standard                    sMAPC      8.5298     8.5369  +0.0071 ✓
+Scratch_Standard                    RMSSC      0.7071     0.7074  +0.0003 ✓
+Scratch_Stabilized                  sMAPE     12.4668    12.3634  -0.1034 ← CHECK
+Scratch_Stabilized                  RMSSE      1.1182     1.1088  -0.0095 ✓
+Scratch_Stabilized                  sMAPC      8.3019     7.9641  -0.3378 ← CHECK
+Scratch_Stabilized                  RMSSC      0.7069     0.6707  -0.0362 ✓
+ZeroShot_Standard                   sMAPE     11.6890    11.6889  -0.0001 ✓
+ZeroShot_Standard                   RMSSE      1.1018     1.1018  -0.0000 ✓
+ZeroShot_Standard                   sMAPC      4.5941     4.6071  +0.0129 ✓
+ZeroShot_Standard                   RMSSC      0.4524     0.4525  +0.0000 ✓
+ZeroShot_Stabilized                 sMAPE     11.6842    11.6230  -0.0612 ✓
+ZeroShot_Stabilized                 RMSSE      1.0756     1.1032  +0.0275 ✓
+ZeroShot_Stabilized                 sMAPC      4.2790     3.0543  -1.2247 ← CHECK
+ZeroShot_Stabilized                 RMSSC      0.4559     0.3342  -0.1216 ← CHECK
+NHITS_Scratch_Standard              sMAPE     13.5320    13.5319  -0.0001 ✓
+NHITS_Scratch_Standard              RMSSE      1.1592     1.1596  +0.0003 ✓
+NHITS_Scratch_Standard              sMAPC     11.1819    11.2063  +0.0244 ✓
+NHITS_Scratch_Standard              RMSSC      0.8516     0.8522  +0.0006 ✓
+NHITS_Scratch_Stabilized            sMAPE     13.5657    13.2101  -0.3557 ← CHECK
+NHITS_Scratch_Stabilized            RMSSE      1.1679     1.1481  -0.0199 ✓
+NHITS_Scratch_Stabilized            sMAPC     11.1634    10.2914  -0.8721 ← CHECK
+NHITS_Scratch_Stabilized            RMSSC      0.8565     0.7824  -0.0741 ✓
+NHITS_ZeroShot_Standard             sMAPE     11.7023    11.7024  +0.0001 ✓
+NHITS_ZeroShot_Standard             RMSSE      1.0928     1.0929  +0.0001 ✓
+NHITS_ZeroShot_Standard             sMAPC      4.6083     4.6115  +0.0032 ✓
+NHITS_ZeroShot_Standard             RMSSC      0.4614     0.4613  -0.0000 ✓
+NHITS_ZeroShot_Stabilized           sMAPE     11.8167    11.7461  -0.0706 ✓
+NHITS_ZeroShot_Stabilized           RMSSE      1.1265     1.1441  +0.0176 ✓
+NHITS_ZeroShot_Stabilized           sMAPC      4.5309     3.2853  -1.2456 ← CHECK
+NHITS_ZeroShot_Stabilized           RMSSC      0.4333     0.3441  -0.0892 ✓
+
+Done.
