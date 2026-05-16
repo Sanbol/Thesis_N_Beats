@@ -3,8 +3,8 @@ Extract per-series sMAPE, RMSSE, sMAPC, RMSSC for all conditions.
 
 Loads each trained checkpoint, runs it over the M3 test set, and records
 metrics at the individual series level.  Results are saved to:
-  per_series_results_raw.csv   — one row per (series, condition, seed, origin)
-  per_series_results.csv       — one row per (series, condition) after averaging
+  per_series_results_raw.csv   - one row per (series, condition, seed, origin)
+  per_series_results.csv       - one row per (series, condition) after averaging
                                  over origins AND seeds  (input to stat tests)
 """
 
@@ -23,8 +23,7 @@ from src.methods.NHITSS import LitNHITSS
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 print(f"Device: {DEVICE}")
 
-# Map: (scenario, architecture, variant) -> list of (seed, run_id, ckpt_subdir)
-# ckpt_subdir is the directory prefix relative to cwd
+
 RUNS = {
     ("Scratch",   "NBEATS", "Standard"):    [(1,"zraud12i","NBEATSS_thesis")],
     ("Scratch",   "NBEATS", "Stabilized"):  [(1,"rj0o61ve","NBEATSS_thesis")],
@@ -47,7 +46,7 @@ def find_checkpoint(subdir, run_id):
         p = f"{base}/{name}"
         if os.path.exists(p):
             return p
-    # Fall back to newest epoch checkpoint
+
     candidates = sorted(glob.glob(f"{base}/epoch=*.ckpt"))
     if candidates:
         return candidates[-1]
@@ -70,53 +69,53 @@ def eval_model(model, test_dl):
     """
     rows = []
     for x, _ in test_dl:
-        enc = x["encoder_cont"].to(DEVICE)   # (B, 48, 6)
-        dec = x["decoder_cont"].to(DEVICE)   # (B,  6, 6)
-        groups = x["groups"].to(DEVICE)       # (B,  1)
+        enc = x["encoder_cont"].to(DEVICE)
+        dec = x["decoder_cont"].to(DEVICE)
+        groups = x["groups"].to(DEVICE)
 
         bs = enc.shape[0]
 
-        # Extract inputs (same indexing as NBEATSS._get_losses)
-        lookback        = enc[:, :, 4]        # (B, 48)
-        lookback_lagged = enc[:, :, 5]        # (B, 48)
-        mean_val        = dec[:, :, 0]        # (B,  6)
-        std_val         = dec[:, :, 1]        # (B,  6)
-        scaling_sq      = enc[:, -1, 3]       # (B,)
-        forecast_period = dec[:, :, 4]        # (B,  6) normalised actual
 
-        # Actual rescaled
-        actual = forecast_period * std_val + mean_val   # (B, 6)
+        lookback        = enc[:, :, 4]
+        lookback_lagged = enc[:, :, 5]
+        mean_val        = dec[:, :, 0]
+        std_val         = dec[:, :, 1]
+        scaling_sq      = enc[:, -1, 3]
+        forecast_period = dec[:, :, 4]
 
-        # Forward pass — use EMA model (same as test_step)
-        fc_norm = model.ema_model[0](lookback)          # (B, 6)
-        fl_norm = model.ema_model[0](lookback_lagged)   # (B, 6)
 
-        fc = fc_norm * std_val + mean_val               # rescaled forecast
-        fl = fl_norm * std_val + mean_val               # rescaled lagged forecast
+        actual = forecast_period * std_val + mean_val
 
-        # sMAPE per sample: 200 * mean_h(|a-f| / (|a|+|f|+eps))
+
+        fc_norm = model.ema_model[0](lookback)
+        fl_norm = model.ema_model[0](lookback_lagged)
+
+        fc = fc_norm * std_val + mean_val
+        fl = fl_norm * std_val + mean_val
+
+
         smape = 200 * torch.mean(
             torch.abs(actual - fc) / (torch.abs(actual) + torch.abs(fc) + 1e-3),
-            dim=-1)                                     # (B,)
+            dim=-1)
 
-        # RMSSE per sample
-        mse   = torch.mean((actual - fc)**2, dim=-1)   # (B,)
+
+        mse   = torch.mean((actual - fc)**2, dim=-1)
         rmsse = torch.sqrt(mse / (scaling_sq + 1e-3))
-        rmsse = torch.clamp(rmsse, 0.0, 5.0)           # (B,)
+        rmsse = torch.clamp(rmsse, 0.0, 5.0)
 
-        # Compare: fc[:,:-1]  vs  fl[:,1:]  (same target steps, consecutive origins)
-        fc_ov = fc[:, :-1]                             # (B, 5)
-        fl_ov = fl[:, 1:]                              # (B, 5)
+
+        fc_ov = fc[:, :-1]
+        fl_ov = fl[:, 1:]
 
         smapc = 200 * torch.mean(
             torch.abs(fc_ov - fl_ov) / (torch.abs(fc_ov) + torch.abs(fl_ov) + 1e-3),
-            dim=-1)                                    # (B,)
+            dim=-1)
 
         mse_s  = torch.mean((fc_ov - fl_ov)**2, dim=-1)
         rmssc  = torch.sqrt(mse_s / (scaling_sq + 1e-3))
-        rmssc  = torch.clamp(rmssc, 0.0, 5.0)         # (B,)
+        rmssc  = torch.clamp(rmssc, 0.0, 5.0)
 
-        # Collect — move to CPU
+
         gids   = groups.squeeze(-1).cpu().numpy()
         smape_np  = smape.cpu().numpy()
         rmsse_np  = rmsse.cpu().numpy()
@@ -135,7 +134,7 @@ def eval_model(model, test_dl):
     return rows
 
 
-print("Loading M3 test dataloaders (two variants)…")
+print("Loading M3 test dataloaders (two variants)...")
 
 def make_dl(bs_mult):
     _, _, _, _, dl = load_data(
@@ -152,9 +151,9 @@ def make_dl(bs_mult):
     )
     return dl
 
-print("  Loading bs_mult=6 (Scratch models, backcast_length=36)…")
+print("  Loading bs_mult=6 (Scratch models, backcast_length=36)...")
 test_dl_6 = make_dl(6)
-print("  Loading bs_mult=4 (TL/ZeroShot models, backcast_length=24)…")
+print("  Loading bs_mult=4 (TL/ZeroShot models, backcast_length=24)...")
 test_dl_4 = make_dl(4)
 print(f"  bs_mult=6: {sum(len(b[0]['groups']) for b in test_dl_6):,} windows")
 print(f"  bs_mult=4: {sum(len(b[0]['groups']) for b in test_dl_4):,} windows\n")
@@ -171,7 +170,7 @@ for (scenario, arch, variant), seed_list in RUNS.items():
         try:
             ckpt = find_checkpoint(subdir, run_id)
         except FileNotFoundError as e:
-            print(f"  [{done}/{total}] SKIP {label} — {e}")
+            print(f"  [{done}/{total}] SKIP {label} - {e}")
             continue
 
         print(f"  [{done}/{total}] {label}  ckpt={os.path.basename(ckpt)}")
@@ -187,7 +186,7 @@ for (scenario, arch, variant), seed_list in RUNS.items():
             r["seed"]      = seed
         all_records.extend(rows)
 
-        # Free GPU memory
+
         del model
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
@@ -198,20 +197,20 @@ raw_df = pd.DataFrame(all_records)
 raw_df.to_csv("per_series_results_raw.csv", index=False)
 print("Saved per_series_results_raw.csv")
 
-# Step 1: average over origins within each (series, condition, seed)
+
 agg1 = (raw_df
         .groupby(["series_id", "scenario", "arch", "variant", "seed"])[["sMAPE","RMSSE","sMAPC","RMSSC"]]
         .mean()
         .reset_index())
 
-# Step 2: average over seeds within each (series, condition)
+
 agg2 = (agg1
         .groupby(["series_id", "scenario", "arch", "variant"])[["sMAPE","RMSSE","sMAPC","RMSSC"]]
         .mean()
         .reset_index())
 
-# Add a combined model column for stat tests
-agg2["model"] = agg2["arch"] + "_" + agg2["variant"]   # e.g. "NBEATS_Standard"
+
+agg2["model"] = agg2["arch"] + "_" + agg2["variant"]
 agg2.to_csv("per_series_results.csv", index=False)
 print(f"Saved per_series_results.csv  ({len(agg2):,} rows)")
 
@@ -248,7 +247,7 @@ for (s,a,v), cond_name in condition_map.items():
         ext_val  = subset[metric].mean()
         know_val = known_sub[metric].mean()
         diff = ext_val - know_val
-        flag = " ✓" if abs(diff) < 0.1 else " ← CHECK"
+        flag = " OK" if abs(diff) < 0.1 else " <- CHECK"
         print(f"{cond_name:<35} {metric:<8} {know_val:>8.4f} {ext_val:>10.4f} {diff:>+8.4f}{flag}")
 
 print("\nDone.")

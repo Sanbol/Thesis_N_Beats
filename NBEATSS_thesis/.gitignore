@@ -1,26 +1,13 @@
-
-# Pipeline artifacts (too large for git)
-NBEATSS_thesis/
 wandb/
 *.ckpt
 *.pth
 *.tar.gz
-data/processed/
 data/raw/
-
-# Backup files
+data/processed/
 *.bak
-main_backup_tuned.py
-main_nhits_backup_tuned.py
-run_*_tuned.py.bak
-experiment_results_tuned.csv.bak
-nhits_experiment_results_tuned.csv.bak
-extract_per_series_metrics.py.bak
-
-# Large raw outputs (keep aggregates, skip raw)
-per_series_results_raw.csv
-
-# OS / IDE
-.DS_Store
+main_*backup*.py
+~$*
+CLAUDE.md
 __pycache__/
 *.pyc
+.DS_Store

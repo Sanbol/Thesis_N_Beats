@@ -1,9 +1,0 @@
-experiment,condition,seed,run_id,sMAPE,RMSSE,RMSSC,sMAPC,source
-A_Scratch_Standard_seed1,Scratch_Standard,1,zraud12i,,,,,NOT_FOUND
-B_Scratch_Stabilized_seed1,Scratch_Stabilized,1,fffhryej,,,,,NOT_FOUND
-C_TL_Standard_pretrain_seed1,TL_Standard_pretrain,1,4lf1k5v9,,,,,NOT_FOUND
-D_TL_Stabilized_pretrain_seed1,TL_Stabilized_pretrain,1,5e64f54n,,,,,NOT_FOUND
-C_TL_Standard_finetune_seed1,TL_Standard_finetune,1,5emfx9rz,,,,,NOT_FOUND
-D_TL_Stabilized_finetune_seed1,TL_Stabilized_finetune,1,311ywt1t,,,,,NOT_FOUND
-E_ZeroShot_Standard_seed1,ZeroShot_Standard,1,d2kjmcuk,,,,,NOT_FOUND
-E_ZeroShot_Stabilized_seed1,ZeroShot_Stabilized,1,38hr9l3q,,,,,NOT_FOUND

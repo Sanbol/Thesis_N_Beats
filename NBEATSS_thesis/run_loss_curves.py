@@ -1,6 +1,5 @@
 """
-Training & Validation Loss Curve Generator for N-BEATS-S
-=========================================================
+Training and Validation Loss Curve Generator for N-BEATS-S
 Re-runs a few representative lambda values in VALIDATION mode so that
 both training loss (per-step) and validation loss (per-epoch) are logged.
 
@@ -28,12 +27,12 @@ import numpy as np
 
 BASE_DIR = Path(__file__).parent
 PYTHON_EXE = str(BASE_DIR.parent / ".venv" / "Scripts" / "python.exe")
-MAIN_PY = BASE_DIR / "main_loss_curves.py"        # We create a modified main.py
+MAIN_PY = BASE_DIR / "main_loss_curves.py"
 MAIN_PY_TEMPLATE = BASE_DIR / "main.py"
 LOSS_DATA_DIR = BASE_DIR / "loss_curve_data"
 OUTPUT_PLOT = BASE_DIR / "training_validation_loss_curves.png"
 
-# Representative lambda values that span the range
+
 LAMBDA_CONFIGS = [
     {"lambda": 0.0,  "ema_decay": 0.0,  "label": r"$\lambda$ = 0 (Standard N-BEATS)"},
     {"lambda": 0.02, "ema_decay": 0.99, "label": r"$\lambda$ = 0.02"},
@@ -41,13 +40,13 @@ LAMBDA_CONFIGS = [
     {"lambda": 0.20, "ema_decay": 0.99, "label": r"$\lambda$ = 0.20"},
 ]
 
-SEED = 1  # Use a single seed for loss curve visualization
+SEED = 1
 MAX_EPOCHS = 10
 BATCHES_PER_EPOCH = 50
 
 def build_main_script(config, seed, loss_csv_path):
     loss_csv_escaped = str(loss_csv_path).replace("\\", "\\\\")
-    
+
     content = f'''
 # Modified main.py for loss curve extraction
 # Adds a custom callback that saves per-step training and per-epoch validation losses
@@ -69,21 +68,21 @@ import csv
 
 class LossCurveLogger(Callback):
     """Saves per-step training loss and per-epoch validation loss to CSV."""
-    
+
     def __init__(self, output_path):
         super().__init__()
         self.output_path = output_path
         self.train_steps = []
         self.val_epochs = []
         os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        
+
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         step = trainer.global_step
         metrics = trainer.callback_metrics
         tloss_a = metrics.get("tloss_a_step", None)
         tloss_s = metrics.get("tloss_s_step", None)
         tloss = metrics.get("tloss_step", None)
-        
+
         if tloss_a is not None:
             self.train_steps.append([
                 step, trainer.current_epoch, batch_idx, "train",
@@ -91,13 +90,13 @@ class LossCurveLogger(Callback):
                 float(tloss_s) if tloss_s is not None else 0.0,
                 float(tloss) if tloss is not None else float(tloss_a),
             ])
-    
+
     def on_validation_epoch_end(self, trainer, pl_module):
         metrics = trainer.callback_metrics
         vloss_a = metrics.get("vloss_a", None)
         vloss_s = metrics.get("vloss_s", None)
         vloss = metrics.get("vloss", None)
-        
+
         if vloss_a is not None:
             step = trainer.global_step
             self.val_epochs.append([
@@ -106,7 +105,7 @@ class LossCurveLogger(Callback):
                 float(vloss_s) if vloss_s is not None else 0.0,
                 float(vloss) if vloss is not None else float(vloss_a),
             ])
-    
+
     def on_fit_end(self, trainer, pl_module):
         with open(self.output_path, "w", newline="") as f:
             writer = csv.writer(f)
@@ -222,7 +221,7 @@ def main():
     modelsummary_callback = ModelSummary(max_depth=3)
     checkpoint_callback = ModelCheckpoint(filename="best", monitor="vloss", mode="min", save_last=True)
     early_stop_callback = EarlyStopping(monitor="vloss", mode="min", patience=int(patience))
-    
+
     loss_csv_path = r"{loss_csv_escaped}"
     loss_curve_callback = LossCurveLogger(output_path=loss_csv_path)
 
@@ -278,7 +277,7 @@ def run_experiment(config, seed):
     loss_csv_path = LOSS_DATA_DIR / f"{label_safe}.csv"
 
     if loss_csv_path.exists():
-        print(f"  [SKIP] {label_safe} — CSV already exists")
+        print(f"  [SKIP] {label_safe} - CSV already exists")
         return loss_csv_path
 
     build_main_script(config, seed, loss_csv_path)
@@ -356,36 +355,36 @@ def generate_loss_curve_plots(results):
     Panel 1: Training and Validation RMSSE for different lambdas
     Panel 2: Validation stability loss for different lambdas
     """
-    # Color palette matching the paper style (green, orange, blue, red)
+
     colors = ['#2ca02c', '#ff7f0e', '#1f77b4', '#d62728']
-    
+
     fig, axes = plt.subplots(1, 2, figsize=(16, 6))
     ax1, ax2 = axes
-    
-    # ---- Panel 1: Training and Validation RMSSE ----
+
+
     ax1.set_title("Training and Validation Loss", fontsize=14, fontweight='bold', pad=15)
     ax1.set_xlabel("Iterations", fontsize=12)
     ax1.set_ylabel("RMSSE", fontsize=12)
-    
+
     for i, (config, train_data, val_data) in enumerate(results):
         color = colors[i % len(colors)]
         lam = config["lambda"]
-        
+
         if train_data:
             steps = [d["step"] for d in train_data]
             losses = [d["loss_a"] for d in train_data]
-            
-            # Raw training loss with high transparency
+
+
             ax1.plot(steps, losses, color=color, alpha=0.12, linewidth=0.5)
-            
-            # Smoothed training loss
+
+
             smoothed = moving_average(np.array(losses), window=15)
-            offset = 14  # window-1
+            offset = 14
             smoothed_steps = steps[offset:offset+len(smoothed)]
             ax1.plot(smoothed_steps, smoothed, color=color,
                      linewidth=2.0, linestyle='-',
                      label='Training RMSSE $\\lambda$ = %.2g' % lam)
-        
+
         if val_data:
             v_steps = [d["step"] for d in val_data]
             v_losses = [d["loss_a"] for d in val_data]
@@ -393,101 +392,101 @@ def generate_loss_curve_plots(results):
                      linewidth=2.0, linestyle='--', marker='o', markersize=5,
                      alpha=0.9,
                      label='Validation RMSSE $\\lambda$ = %.2g' % lam)
-    
+
     ax1.legend(fontsize=8, loc='upper right', framealpha=0.9, ncol=1)
     ax1.grid(True, alpha=0.2)
     ax1.tick_params(labelsize=10)
-    
-    # ---- Panel 2: Validation Loss (both accuracy & stability) ----
+
+
     ax2.set_title("Validation Loss", fontsize=14, fontweight='bold', pad=15)
     ax2.set_xlabel("Iterations", fontsize=12)
     ax2.set_ylabel("RMSSE / Stability", fontsize=12)
-    
+
     for i, (config, train_data, val_data) in enumerate(results):
         color = colors[i % len(colors)]
         lam = config["lambda"]
-        
+
         if val_data:
             v_steps = [d["step"] for d in val_data]
             v_losses_a = [d["loss_a"] for d in val_data]
             v_losses_s = [d["loss_s"] for d in val_data]
-            
-            # Validation accuracy (RMSSE) - solid with markers
+
+
             ax2.plot(v_steps, v_losses_a, color=color,
                      linewidth=2.5, linestyle='-', marker='s', markersize=5,
                      label='RMSSE $\\lambda$ = %.2g' % lam)
-            
-            # Validation stability - dashed
+
+
             ax2.plot(v_steps, v_losses_s, color=color,
                      linewidth=1.5, linestyle=':', marker='d', markersize=4,
                      alpha=0.7,
                      label='Stability $\\lambda$ = %.2g' % lam)
-    
+
     ax2.legend(fontsize=7.5, loc='upper right', framealpha=0.9, ncol=2)
     ax2.grid(True, alpha=0.2)
     ax2.tick_params(labelsize=10)
-    
+
     plt.tight_layout(w_pad=3)
     plt.savefig(str(OUTPUT_PLOT), dpi=300, bbox_inches='tight')
     plt.close()
-    
-    # ---- ALSO generate a clean validation-only figure ----
+
+
     output_val_only = str(OUTPUT_PLOT).replace('.png', '_validation_only.png')
     fig2, (ax3, ax4) = plt.subplots(1, 2, figsize=(14, 5.5))
-    
-    # Panel A: Validation RMSSE
+
+
     ax3.set_title("Validation RMSSE", fontsize=14, fontweight='bold', pad=12)
     ax3.set_xlabel("Epoch", fontsize=12)
     ax3.set_ylabel("RMSSE", fontsize=12)
-    
+
     for i, (config, train_data, val_data) in enumerate(results):
         color = colors[i % len(colors)]
         lam = config["lambda"]
-        
+
         if val_data:
             epochs = [d["epoch"] for d in val_data]
             v_losses_a = [d["loss_a"] for d in val_data]
             ax3.plot(epochs, v_losses_a, color=color,
                      linewidth=2.5, linestyle='-', marker='o', markersize=6,
                      label='$\\lambda$ = %.2g' % lam)
-    
+
     ax3.legend(fontsize=11, loc='upper right', framealpha=0.9)
     ax3.grid(True, alpha=0.3)
     ax3.set_xticks(range(10))
     ax3.tick_params(labelsize=10)
-    
-    # Panel B: Validation Stability Loss
+
+
     ax4.set_title("Validation Stability Loss", fontsize=14, fontweight='bold', pad=12)
     ax4.set_xlabel("Epoch", fontsize=12)
     ax4.set_ylabel("Stability Loss", fontsize=12)
-    
+
     for i, (config, train_data, val_data) in enumerate(results):
         color = colors[i % len(colors)]
         lam = config["lambda"]
-        
+
         if val_data:
             epochs = [d["epoch"] for d in val_data]
             v_losses_s = [d["loss_s"] for d in val_data]
             ax4.plot(epochs, v_losses_s, color=color,
                      linewidth=2.5, linestyle='-', marker='s', markersize=6,
                      label='$\\lambda$ = %.2g' % lam)
-    
+
     ax4.legend(fontsize=11, loc='upper right', framealpha=0.9)
     ax4.grid(True, alpha=0.3)
     ax4.set_xticks(range(10))
     ax4.tick_params(labelsize=10)
-    
+
     plt.tight_layout(w_pad=3)
     plt.savefig(output_val_only, dpi=300, bbox_inches='tight')
     plt.close()
-    
+
     print(f"\n  Loss curve plot saved: {OUTPUT_PLOT}")
     print(f"  Validation-only plot saved: {output_val_only}")
 
 
 def main():
     print("=" * 80)
-    print("  TRAINING & VALIDATION LOSS CURVES — Lambda Comparison")
+    print("  TRAINING & VALIDATION LOSS CURVES - Lambda Comparison")
     print("=" * 80)
     print(f"  Lambda values: {[c['lambda'] for c in LAMBDA_CONFIGS]}")
     print(f"  Seed: {SEED}")
@@ -499,21 +498,21 @@ def main():
     os.makedirs(LOSS_DATA_DIR, exist_ok=True)
 
     t_start = time.time()
-    
-    # Run experiments
+
+
     csv_paths = []
     for config in LAMBDA_CONFIGS:
         csv_path = run_experiment(config, SEED)
         csv_paths.append((config, csv_path))
 
-    # Cleanup temp main script
+
     if MAIN_PY.exists():
         os.remove(MAIN_PY)
 
     elapsed_total = time.time() - t_start
     print(f"\n  Total experiment time: {int(elapsed_total//60):02d}:{int(elapsed_total%60):02d}")
 
-    # Load data and generate plots
+
     print("\n  Loading loss data and generating plots...")
     results = []
     for config, csv_path in csv_paths:
@@ -522,7 +521,7 @@ def main():
             results.append((config, train_data, val_data))
             print(f"  {config['label']}: {len(train_data)} train steps, {len(val_data)} val epochs")
         else:
-            print(f"  [SKIP] {config['label']} — no data")
+            print(f"  [SKIP] {config['label']} - no data")
 
     if results:
         generate_loss_curve_plots(results)
@@ -530,7 +529,7 @@ def main():
         print("  [ERROR] No data to plot!")
 
     print("\n" + "#" * 70)
-    print("  DONE — Loss Curve Generation Complete")
+    print("  DONE - Loss Curve Generation Complete")
     print("#" * 70)
 
 

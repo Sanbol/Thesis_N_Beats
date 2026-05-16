@@ -16,11 +16,7 @@ def main():
         wandb.login()
     project_name = "NBEATSS_thesis"
 
-    ##########################
-    # EXPERIMENT CONFIGURATION
-    ##########################
 
-    # Dataset
     dataset = "M3"
     subset = "Monthly"
     dataset_id = "M3M"
@@ -28,11 +24,11 @@ def main():
     test_periods = 18
     test_mode_nrows = None
 
-    # Model
+
     load_model = False
     update_loaded_model_specific_training_and_eval_hparams = False
 
-    # Model architecture - load existing model or specify model hyperparameters
+
     if load_model:
         model_id = ""
         checkpoint = "last"
@@ -46,35 +42,32 @@ def main():
         zero_mean = True
         unit_variance = True
 
-    # Model training and evaluation
+
     eval_mode = 'validation'
     random_seed = 1
-    ## Data hparams
+
     forecasting_origin_range_multiplier = 1e6
     batch_size = 512
     num_workers = 0
-    ## Model-specific training and evaluation hparams
+
     if not load_model or update_loaded_model_specific_training_and_eval_hparams:
         lambda_stability = 0.0
         enforce_nonnegative_forecast_metric_calculation = False
         learning_rate = 0.001
         explr_gamma = 1.0
         ema_decay = 0.0
-    ## Trainer hparams
+
     max_norm = 1.0
     batches_per_epoch = 93
     patience = 15
     max_epochs = 200
 
-    # Other
+
     if torch.cuda.is_available():
         torch.set_float32_matmul_precision("medium")
     save_forecasts = False
     plot_forecasts = False
 
-    ###################################################################################################
-    # Do not change anything below this line - only use for running experiment w config specified above
-    ###################################################################################################
 
     L.seed_everything(random_seed, workers=True)
 

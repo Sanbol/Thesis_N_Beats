@@ -1,6 +1,5 @@
 """
 Tuned N-BEATS-S Experiment Runner
-==================================
 Runs all experiments with architecture from Van Belle et al. (2023):
   hidden_layer_units = 256, n_blocks = 20  (from Van Belle et al., 2023, Table 3)
 
@@ -26,24 +25,18 @@ import shutil
 from pathlib import Path
 from datetime import datetime
 
-# ============================================================
-# PATHS
-# ============================================================
+
 BASE_DIR = Path(__file__).parent
-PYTHON_EXE = sys.executable  # works on Windows, Linux, and macOS
+PYTHON_EXE = sys.executable
 MAIN_PY = BASE_DIR / "main.py"
 MAIN_PY_BACKUP = BASE_DIR / "main_backup_tuned.py"
 WANDB_DIR = BASE_DIR / "wandb"
 RESULTS_FILE = BASE_DIR / "experiment_results_tuned.csv"
 
-# ============================================================
-# EXPERIMENTAL DESIGN
-# ============================================================
+
 SEEDS = [1]
 
-# ============================================================
-# CONFIG TEMPLATE — Van Belle et al. (2023): hidden=256, n_blocks=20
-# ============================================================
+
 CONFIG_TEMPLATE = '''    ##########################
     # EXPERIMENT CONFIGURATION
     ##########################
@@ -102,10 +95,6 @@ CONFIG_TEMPLATE = '''    ##########################
     plot_forecasts = False
 '''
 
-
-# ============================================================
-# HELPER FUNCTIONS
-# ============================================================
 
 def get_existing_wandb_runs():
     if not WANDB_DIR.exists():
@@ -187,7 +176,7 @@ def run_experiment(name, config_values):
             capture_output=True,
             encoding="utf-8",
             errors="replace",
-            timeout=172800  # 48 hour timeout (M4 eval is very slow)
+            timeout=172800
         )
     except subprocess.TimeoutExpired:
         print(f"  TIMEOUT after 48 hours for {name}")
@@ -289,10 +278,6 @@ def print_summary(results):
         print(f"  Difference:          {diff:+.4f} ({'Stabilized wins' if diff > 0 else 'Standard wins'})")
 
 
-# ============================================================
-# MAIN EXECUTION
-# ============================================================
-
 def main():
     overall_start = time.time()
     print(f"\n{'#'*70}")
@@ -300,7 +285,7 @@ def main():
     print(f"  Architecture: hidden=256, n_blocks=20 (Van Belle et al., 2023)")
     print(f"  Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"  Total experiments: 24 (6 scratch + 6 pretrain + 6 finetune + 6 zeroshot)")
-    print(f"  NOTE: Van Belle architecture (256/20) — M4 runs can take many hours")
+    print(f"  NOTE: Van Belle architecture (256/20) - M4 runs can take many hours")
     print(f"{'#'*70}")
 
     shutil.copy2(MAIN_PY, MAIN_PY_BACKUP)
@@ -310,14 +295,13 @@ def main():
     pretrain_model_ids = {}
 
     try:
-        # ===========================================================
-        # PHASE A: SCRATCH STANDARD (3 seeds)
-        # ===========================================================
+
+
         print(f"\n{'#'*70}")
         print(f"  PHASE A: Scratch Standard (N-BEATS on M3, hidden=256, blocks=20)")
         print(f"{'#'*70}")
 
-        for seed in []:  # SKIP STANDARD - using May 11 results
+        for seed in []:
             name = f"A_Scratch_Standard_seed{seed}"
             config = {
                 "dataset": "M3", "dataset_id": "M3M",
@@ -337,9 +321,7 @@ def main():
                 })
             save_results(results)
 
-        # ===========================================================
-        # PHASE A: SCRATCH STABILIZED (3 seeds)
-        # ===========================================================
+
         print(f"\n{'#'*70}")
         print(f"  PHASE A: Scratch Stabilized (N-BEATS-S on M3, hidden=256, blocks=20)")
         print(f"{'#'*70}")
@@ -364,15 +346,13 @@ def main():
                 })
             save_results(results)
 
-        # ===========================================================
-        # PHASE B: TL STANDARD PRE-TRAIN ON M4 (3 seeds)
-        # ===========================================================
+
         print(f"\n{'#'*70}")
         print(f"  PHASE B: TL Standard Pre-train (N-BEATS on M4, hidden=256, blocks=20)")
         print(f"  NOTE: M4 runs can take many hours due to large eval set")
         print(f"{'#'*70}")
 
-        for seed in []:  # SKIP STANDARD - using May 11 results
+        for seed in []:
             name = f"C_TL_Standard_pretrain_seed{seed}"
             config = {
                 "dataset": "M4", "dataset_id": "M4M",
@@ -394,9 +374,7 @@ def main():
             save_results(results)
             print(f"  >> Stored pretrain model_id for Standard seed{seed}: {run_id}")
 
-        # ===========================================================
-        # PHASE B: TL STABILIZED PRE-TRAIN ON M4 (3 seeds)
-        # ===========================================================
+
         print(f"\n{'#'*70}")
         print(f"  PHASE B: TL Stabilized Pre-train (N-BEATS-S on M4, hidden=256, blocks=20)")
         print(f"{'#'*70}")
@@ -423,14 +401,12 @@ def main():
             save_results(results)
             print(f"  >> Stored pretrain model_id for Stabilized seed{seed}: {run_id}")
 
-        # ===========================================================
-        # PHASE C: TL STANDARD FINE-TUNE ON M3 (3 seeds)
-        # ===========================================================
+
         print(f"\n{'#'*70}")
         print(f"  PHASE C: TL Standard Fine-tune (M4->M3, hidden=256, blocks=20)")
         print(f"{'#'*70}")
 
-        for seed in []:  # SKIP STANDARD - using May 11 results
+        for seed in []:
             model_id = pretrain_model_ids.get(f"Standard_seed{seed}")
             if not model_id:
                 print(f"  SKIPPING: No pretrain model_id for Standard seed{seed}")
@@ -454,9 +430,7 @@ def main():
                 })
             save_results(results)
 
-        # ===========================================================
-        # PHASE C: TL STABILIZED FINE-TUNE ON M3 (3 seeds)
-        # ===========================================================
+
         print(f"\n{'#'*70}")
         print(f"  PHASE C: TL Stabilized Fine-tune (M4->M3, hidden=256, blocks=20)")
         print(f"{'#'*70}")
@@ -485,9 +459,7 @@ def main():
                 })
             save_results(results)
 
-        # ===========================================================
-        # PHASE D: ZERO-SHOT (load M4 pretrained, test on M3, no training)
-        # ===========================================================
+
         print(f"\n{'#'*70}")
         print(f"  PHASE D: Zero-Shot (M4->test M3, no fine-tuning)")
         print(f"{'#'*70}")
@@ -507,7 +479,7 @@ def main():
                     "backcast_length_multiplier": 4,
                     "lambda_stability": lambda_val, "ema_decay": ema_val,
                     "learning_rate": "1e-5", "explr_gamma": 1.0,
-                    "max_epochs": 0,  # ZERO SHOT: no training
+                    "max_epochs": 0,
                 }
                 run_id, metrics = run_experiment(name, config)
                 if metrics:

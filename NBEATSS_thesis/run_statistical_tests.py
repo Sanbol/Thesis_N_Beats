@@ -4,11 +4,11 @@ Statistical significance tests for thesis results.
 Reads per_series_results.csv (one row per series × condition, seed-averaged).
 
 Outputs:
-  friedman_results.csv    — Friedman χ² test across 4 models per (scenario, metric)
-  wilcoxon_results.csv    — Paired Wilcoxon signed-rank Standard vs Stabilized
+  friedman_results.csv    - Friedman χ² test across 4 models per (scenario, metric)
+  wilcoxon_results.csv    - Paired Wilcoxon signed-rank Standard vs Stabilized
                             per (scenario, arch, metric), with Holm correction
-  nemenyi_results.csv     — Nemenyi post-hoc pairwise p-values per (scenario, metric)
-  cd_diagram_*.png        — Critical difference diagrams
+  nemenyi_results.csv     - Nemenyi post-hoc pairwise p-values per (scenario, metric)
+  cd_diagram_*.png        - Critical difference diagrams
 
 Usage:
   python run_statistical_tests.py
@@ -44,7 +44,7 @@ def make_pivot(scenario, metric):
     """Returns a DataFrame with series_id as index, one column per model."""
     sub = df[df["scenario"] == scenario][["series_id", "model", metric]]
     pivot = sub.pivot(index="series_id", columns="model", values=metric)
-    # Keep only models that are present
+
     present = [m for m in MODELS if m in pivot.columns]
     pivot = pivot[present].dropna()
     return pivot
@@ -61,7 +61,7 @@ for scenario in SCENARIOS:
         if pivot.shape[1] < 2:
             print(f"  SKIP {scenario}/{metric}: only {pivot.shape[1]} models present")
             continue
-        # Friedman needs at least 3 groups; use all present columns
+
         groups = [pivot[col].values for col in pivot.columns]
         stat, p = stats.friedmanchisquare(*groups)
         sig = "**" if p < 0.01 else ("*" if p < ALPHA else "ns")
@@ -92,14 +92,14 @@ for scenario in SCENARIOS:
                 continue
             a = pivot[std_col].values
             b = pivot[stab_col].values
-            # Remove any pairs with NaN
+
             mask = ~(np.isnan(a) | np.isnan(b))
             a, b = a[mask], b[mask]
             if len(a) < 10:
                 print(f"  SKIP {scenario}/{arch}/{metric}: only {len(a)} pairs")
                 continue
             stat, p = stats.wilcoxon(a, b, alternative="two-sided")
-            # Median difference (Stabilized - Standard): negative = improvement
+
             med_diff = float(np.median(b - a))
             wilcoxon_rows.append({
                 "scenario": scenario, "arch": arch, "metric": metric,
@@ -110,7 +110,7 @@ for scenario in SCENARIOS:
                 "direction": "better" if med_diff < 0 else "worse"
             })
 
-# Holm–Bonferroni correction
+
 wdf = pd.DataFrame(wilcoxon_rows)
 if len(wdf) > 0:
     sorted_idx = wdf["p_raw"].argsort().values
@@ -118,7 +118,7 @@ if len(wdf) > 0:
     holm_p = np.ones(n)
     for rank, idx in enumerate(sorted_idx):
         holm_p[idx] = min(1.0, wdf.iloc[idx]["p_raw"] * (n - rank))
-    # Enforce monotonicity (step-down)
+
     holm_p_sorted = holm_p[sorted_idx]
     for i in range(1, len(holm_p_sorted)):
         holm_p_sorted[i] = max(holm_p_sorted[i], holm_p_sorted[i-1])
@@ -129,7 +129,7 @@ if len(wdf) > 0:
     print(f"\n{'Scenario':<10} {'Arch':<7} {'Metric':<7} {'N':>5}  {'p_raw':>8}  {'p_holm':>8}  {'Med_Δ':>8}  {'Sig':>4}")
     print("-" * 72)
     for _, row in wdf.sort_values(["scenario","arch","metric"]).iterrows():
-        sig = "✓" if row["significant_holm"] else "-"
+        sig = "OK" if row["significant_holm"] else "-"
         print(f"  {row['scenario']:<10} {row['arch']:<7} {row['metric']:<7} {int(row['n_pairs']):>5}  "
               f"{row['p_raw']:>8.4f}  {row['p_holm']:>8.4f}  {row['median_diff_stab_minus_std']:>+8.4f}  {sig:>4}")
 
@@ -144,7 +144,7 @@ print("=" * 60)
 nemenyi_rows = []
 for scenario in SCENARIOS:
     for metric in METRICS:
-        # Only run post-hoc if Friedman was significant
+
         fr = pd.DataFrame(friedman_rows)
         fr_row = fr[(fr.scenario == scenario) & (fr.metric == metric)]
         if fr_row.empty or not fr_row.iloc[0]["significant"]:
@@ -177,7 +177,7 @@ if nemenyi_rows:
     pd.DataFrame(nemenyi_rows).to_csv("nemenyi_results.csv", index=False)
     print("\nSaved nemenyi_results.csv")
 else:
-    print("  No significant Friedman results → no Nemenyi output.")
+    print("  No significant Friedman results -> no Nemenyi output.")
 
 
 print("\n" + "=" * 60)
@@ -190,15 +190,14 @@ for scenario in SCENARIOS:
         if pivot.shape[1] < 3:
             continue
 
-        # Average ranks across series (lower rank = better)
+
         ranks = pivot.rank(axis=1)
         avg_ranks = ranks.mean().sort_values()
 
         n  = pivot.shape[0]
         k  = pivot.shape[1]
 
-        # Critical Difference (Nemenyi, α=0.05) per Demšar (2006)
-        # q_alpha values for k=2..10 at alpha=0.05:
+
         q_table = {2:1.960, 3:2.343, 4:2.569, 5:2.728, 6:2.850,
                    7:2.949, 8:3.031, 9:3.102, 10:3.164}
         q = q_table.get(k, 3.164)
@@ -244,7 +243,7 @@ if len(wdf) > 0:
         print(f"\n  {scenario}:")
         sub = wdf[wdf.scenario == scenario].sort_values(["arch","metric"])
         for _, r in sub.iterrows():
-            direction = "↓ better" if r["median_diff_stab_minus_std"] < 0 else "↑ worse"
+            direction = "better" if r["median_diff_stab_minus_std"] < 0 else "worse"
             sig = "SIGNIFICANT" if r["significant_holm"] else "not sig."
             print(f"    {r['arch']}-S {r['metric']:6s}: Δ={r['median_diff_stab_minus_std']:+.4f} ({direction})"
                   f"  p_holm={r['p_holm']:.4f}  {sig}")
