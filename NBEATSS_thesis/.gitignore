@@ -11,3 +11,4 @@ CLAUDE.md
 __pycache__/
 *.pyc
 .DS_Store
+per_series_results_raw.csv
