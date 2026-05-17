@@ -39,3 +39,6 @@ Thumbs.db
 
 # Claude Code memory (AI assistant files, not thesis code)
 .claude/
+
+# Thesis writeup document (repo scope is code + data + artifacts only)
+*.docx
