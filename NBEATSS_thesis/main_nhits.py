@@ -16,6 +16,9 @@ def main():
         wandb.login()
     project_name = "NBEATSS_thesis"
 
+    ##########################
+    # EXPERIMENT CONFIGURATION
+    ##########################
 
     dataset = "M3"
     subset = "Monthly"
@@ -67,6 +70,7 @@ def main():
         torch.set_float32_matmul_precision("medium")
     save_forecasts = False
     plot_forecasts = False
+    ###################################################################################################
 
 
     L.seed_everything(random_seed, workers=True)
