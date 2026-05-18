@@ -1,5 +1,5 @@
 """
-Combined runner: N-BEATS-S (24 runs) then N-HiTS-S (24 runs) = 48 total.
+Combined runner: N-BEATS-S (8 runs) then N-HiTS-S (8 runs) = 16 total.
 Launches sequentially so they don't compete for GPU.
 """
 import subprocess
@@ -40,10 +40,10 @@ def main():
     print(f"  Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"{'='*70}\n")
     
-    # Phase 1: N-BEATS-S (24 runs)
+    # Phase 1: N-BEATS-S (8 runs)
     rc1 = run_script("N-BEATS-S Tuned Experiments (24 runs)", BASE_DIR / "run_experiments_tuned.py")
-    
-    # Phase 2: N-HiTS-S (24 runs)
+
+    # Phase 2: N-HiTS-S (8 runs)
     rc2 = run_script("N-HiTS-S Tuned Experiments (24 runs)", BASE_DIR / "run_nhits_experiments_tuned.py")
     
     total = time.time() - overall_start

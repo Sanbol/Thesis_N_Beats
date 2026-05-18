@@ -5,13 +5,13 @@ Runs all experiments with HP-TUNED architecture:
 
 Conditions:
   A. Scratch Standard   (M3 only, lambda=0.0, ema=0.0)
-  B. Scratch Stabilized (M3 only, lambda=0.02, ema=0.99)
+  B. Scratch Stabilized (M3 only, lambda=0.15, ema=0.0)
   C. TL Standard        (M4->M3, lambda=0.0, ema=0.0)
-  D. TL Stabilized      (M4->M3, lambda=0.02, ema=0.99)
+  D. TL Stabilized      (M4->M3, lambda=0.15, ema=0.0)
   E. ZeroShot Standard  (M4->test M3, lambda=0.0, ema=0.0)
-  F. ZeroShot Stabilized(M4->test M3, lambda=0.02, ema=0.99)
+  F. ZeroShot Stabilized(M4->test M3, lambda=0.15, ema=0.0)
 
-3 seeds each = 24 total runs (6 scratch + 6 pretrain + 6 finetune + 6 zeroshot).
+1 seed each = 8 total runs (2 scratch + 2 pretrain + 2 finetune + 2 zeroshot).
 Results saved to nhits_experiment_results_tuned.csv.
 """
 

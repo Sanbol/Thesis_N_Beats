@@ -9,9 +9,7 @@ import numpy as np
 
 np.set_printoptions(precision=10)
 
-# ============================================================
 # N-BEATS-S
-# ============================================================
 print("=" * 80)
 print("N-BEATS-S EXHAUSTIVE VERIFICATION")
 print("=" * 80)
@@ -107,9 +105,7 @@ print(f"\n  N-BEATS-S ERRORS: {len(errors_nbeats)}")
 for e in errors_nbeats:
     print(e)
 
-# ============================================================
 # N-HiTS-S
-# ============================================================
 print("\n\n" + "=" * 80)
 print("N-HiTS-S EXHAUSTIVE VERIFICATION")
 print("=" * 80)
@@ -201,9 +197,7 @@ print(f"\n  N-HiTS-S ERRORS: {len(errors_nhits)}")
 for e in errors_nhits:
     print(e)
 
-# ============================================================
 # FINAL SUMMARY
-# ============================================================
 print("\n\n" + "=" * 80)
 print("FINAL SUMMARY")
 print("=" * 80)
