@@ -42,3 +42,9 @@ Thumbs.db
 
 # Thesis writeup document (repo scope is code + data + artifacts only)
 *.docx
+
+# Runtime logs
+*.log
+
+# Raw per-series output (too large, intermediate artifact)
+per_series_results_raw.csv
