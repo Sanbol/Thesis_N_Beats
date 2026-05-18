@@ -1,6 +1,6 @@
 import csv, statistics
 
-# === N-BEATS ===
+# N-BEATS
 with open('experiment_results_tuned.csv') as f:
     rows = list(csv.DictReader(f))
 
@@ -40,7 +40,7 @@ for std_c, stab_c, label in [('Scratch_Standard','Scratch_Stabilized','Scratch')
     pct_smapc = (smapc_stab - smapc_std) / smapc_std * 100
     print(f"  {label:10s}  RMSSC: {rmssc_std:.3f}->{rmssc_stab:.3f}  {pct_rmssc:+.1f}%   sMAPC: {smapc_std:.3f}->{smapc_stab:.3f}  {pct_smapc:+.1f}%")
 
-# === N-HiTS ===
+# N-HiTS
 with open('nhits_experiment_results_tuned.csv') as f:
     nrows = list(csv.DictReader(f))
 
@@ -86,7 +86,7 @@ zs_std = nmean3('ZeroShot_Standard', 'sMAPE')
 zs_stab = nmean3('ZeroShot_Stabilized', 'sMAPE')
 print(f"N-HiTS ZS relative improvement: {(zs_std - zs_stab)/zs_std*100:.1f}%")
 
-# === LAMBDA ===
+# Lambda
 with open('lambda_sensitivity_results.csv') as f:
     lrows = list(csv.DictReader(f))
 

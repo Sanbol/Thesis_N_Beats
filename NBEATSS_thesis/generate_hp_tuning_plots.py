@@ -32,9 +32,7 @@ failed_rows = [r for r in all_rows if r.get('val_sMAPE') == 'FAILED']
 hidden_vals = [32, 128, 256, 512]
 blocks_vals = [3, 5, 10]
 
-# ============================================================
 # FIGURE 1: Heatmap (N-HiTS-S on M4)
-# ============================================================
 fig, ax = plt.subplots(figsize=(8, 5.5))
 
 # Build matrix (NaN for missing/failed)
@@ -99,9 +97,7 @@ plt.close()
 print(f"Saved: {OUTPUT_DIR / 'hp_tuning_heatmap.png'}")
 
 
-# ============================================================
 # FIGURE 2: Scatter plot (Params vs sMAPE, N-HiTS-S)
-# ============================================================
 fig, ax = plt.subplots(figsize=(10, 6))
 
 params = [int(r['n_parameters']) for r in rows]
@@ -156,9 +152,7 @@ plt.close()
 print(f"Saved: {OUTPUT_DIR / 'hp_tuning_scatter.png'}")
 
 
-# ============================================================
-# Print summary
-# ============================================================
+# Summary
 print("\n" + "="*60)
 print("N-HiTS-S HP TUNING ON M4 — SUMMARY:")
 print("="*60)

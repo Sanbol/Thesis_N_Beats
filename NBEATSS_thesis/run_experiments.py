@@ -24,9 +24,7 @@ import shutil
 from pathlib import Path
 from datetime import datetime
 
-# ============================================================
 # PATHS
-# ============================================================
 BASE_DIR = Path(__file__).parent
 PYTHON_EXE = sys.executable  # works on Windows, Linux, and macOS
 MAIN_PY = BASE_DIR / "main.py"
@@ -34,9 +32,7 @@ MAIN_PY_BACKUP = BASE_DIR / "main_backup.py"
 WANDB_DIR = BASE_DIR / "wandb"
 RESULTS_FILE = BASE_DIR / "experiment_results.csv"
 
-# ============================================================
 # EXPERIMENTAL DESIGN
-# ============================================================
 SEEDS = [1, 2, 3]
 
 STANDARD = {"lambda_stability": 0.0, "ema_decay": 0.0}
@@ -47,9 +43,7 @@ SCRATCH_PARAMS = {"learning_rate": "1e-3", "explr_gamma": 1.0, "max_epochs": 10}
 PRETRAIN_PARAMS = {"learning_rate": "1e-3", "explr_gamma": 1.0, "max_epochs": 10}
 FINETUNE_PARAMS = {"learning_rate": "1e-5", "explr_gamma": 0.97, "max_epochs": 15}
 
-# ============================================================
 # CONFIG TEMPLATE (replaces lines ~56-105 of main.py)
-# ============================================================
 CONFIG_TEMPLATE = '''    ##########################
     # EXPERIMENT CONFIGURATION
     ##########################
@@ -109,9 +103,7 @@ CONFIG_TEMPLATE = '''    ##########################
 '''
 
 
-# ============================================================
 # HELPER FUNCTIONS
-# ============================================================
 
 def get_existing_wandb_runs():
     """Get set of existing wandb run directories."""
@@ -313,9 +305,7 @@ def print_summary(results):
         print(f"  Difference:          {diff:+.4f} ({'Stabilized wins' if diff > 0 else 'Standard wins'})")
 
 
-# ============================================================
 # MAIN EXECUTION
-# ============================================================
 
 def main():
     overall_start = time.time()
@@ -334,9 +324,7 @@ def main():
     pretrain_model_ids = {}
     
     try:
-        # ===========================================================
-        # PHASE A: SCRATCH STANDARD (3 seeds) — ~90 seconds total
-        # ===========================================================
+        # PHASE A: SCRATCH STANDARD (3 seeds) - ~90 seconds total
         print(f"\n{'#'*70}")
         print(f"  PHASE A: Scratch Standard (N-BEATS on M3)")
         print(f"  Estimated: ~90 seconds")
@@ -361,9 +349,7 @@ def main():
                 })
             save_results(results)  # save after each run for safety
         
-        # ===========================================================
-        # PHASE A: SCRATCH STABILIZED (3 seeds) — ~90 seconds total
-        # ===========================================================
+        # PHASE A: SCRATCH STABILIZED (3 seeds) - ~90 seconds total
         print(f"\n{'#'*70}")
         print(f"  PHASE A: Scratch Stabilized (N-BEATS-S on M3)")
         print(f"  Estimated: ~90 seconds")
@@ -388,9 +374,7 @@ def main():
                 })
             save_results(results)
         
-        # ===========================================================
-        # PHASE B: TL STANDARD PRE-TRAIN ON M4 (3 seeds) — ~30-45 min
-        # ===========================================================
+        # PHASE B: TL STANDARD PRE-TRAIN ON M4 (3 seeds) - ~30-45 min
         print(f"\n{'#'*70}")
         print(f"  PHASE B: TL Standard Pre-train (N-BEATS on M4)")
         print(f"  Estimated: ~30-45 minutes")
@@ -417,9 +401,7 @@ def main():
             save_results(results)
             print(f"  >> Stored pretrain model_id for Standard seed{seed}: {run_id}")
         
-        # ===========================================================
-        # PHASE B: TL STABILIZED PRE-TRAIN ON M4 (3 seeds) — ~30-45 min
-        # ===========================================================
+        # PHASE B: TL STABILIZED PRE-TRAIN ON M4 (3 seeds) - ~30-45 min
         print(f"\n{'#'*70}")
         print(f"  PHASE B: TL Stabilized Pre-train (N-BEATS-S on M4)")
         print(f"  Estimated: ~30-45 minutes")
@@ -446,9 +428,7 @@ def main():
             save_results(results)
             print(f"  >> Stored pretrain model_id for Stabilized seed{seed}: {run_id}")
         
-        # ===========================================================
-        # PHASE C: TL STANDARD FINE-TUNE ON M3 (3 seeds) — ~15 min
-        # ===========================================================
+        # PHASE C: TL STANDARD FINE-TUNE ON M3 (3 seeds) - ~15 min
         print(f"\n{'#'*70}")
         print(f"  PHASE C: TL Standard Fine-tune (M4→M3, N-BEATS)")
         print(f"  Estimated: ~15 minutes")
@@ -477,9 +457,7 @@ def main():
                 })
             save_results(results)
         
-        # ===========================================================
-        # PHASE C: TL STABILIZED FINE-TUNE ON M3 (3 seeds) — ~15 min
-        # ===========================================================
+        # PHASE C: TL STABILIZED FINE-TUNE ON M3 (3 seeds) - ~15 min
         print(f"\n{'#'*70}")
         print(f"  PHASE C: TL Stabilized Fine-tune (M4→M3, N-BEATS-S)")
         print(f"  Estimated: ~15 minutes")

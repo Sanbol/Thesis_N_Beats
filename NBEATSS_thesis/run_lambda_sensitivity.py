@@ -35,7 +35,7 @@ EXISTING_RESULTS = BASE_DIR / "experiment_results.csv"
 
 SEEDS = [1, 2, 3]
 
-# Lambda values to test (NEW runs only — we already have 0.0 and 0.02)
+# Lambda values to test (NEW runs only - we already have 0.0 and 0.02)
 NEW_LAMBDAS = [0.005, 0.01, 0.05, 0.10, 0.20]
 
 # All runs use EMA β=0.99, scratch M3 training, 10 epochs

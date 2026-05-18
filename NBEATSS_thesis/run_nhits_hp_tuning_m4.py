@@ -27,24 +27,18 @@ from pathlib import Path
 from datetime import datetime
 from itertools import product
 
-# ============================================================
 # PATHS
-# ============================================================
 BASE_DIR = Path(__file__).parent
 PYTHON_EXE = str(BASE_DIR.parent / ".venv" / "Scripts" / "python.exe")
 WANDB_DIR = BASE_DIR / "wandb"
 RESULTS_FILE = BASE_DIR / "nhits_hp_tuning_m4_results.csv"
 
-# ============================================================
 # TUNING GRID
-# ============================================================
 HIDDEN_UNITS_GRID = [32, 128, 256, 512]
 N_BLOCKS_GRID = [3, 5, 10]
 SEED = 1  # Single seed for tuning
 
-# ============================================================
 # N-HiTS-S TEMPLATE (M4 dataset)
-# ============================================================
 
 NHITS_M4_TEMPLATE = '''# N-HiTS-S Hyperparameter Tuning Run on M4 (auto-generated)
 import os
@@ -162,9 +156,7 @@ if __name__ == '__main__':
 '''
 
 
-# ============================================================
 # HELPER FUNCTIONS
-# ============================================================
 
 def get_existing_wandb_runs():
     if not WANDB_DIR.exists():
@@ -277,9 +269,7 @@ def run_single_config(hidden_units, n_blocks, seed):
     return metrics, elapsed
 
 
-# ============================================================
 # MAIN
-# ============================================================
 
 def main():
     total_configs = len(HIDDEN_UNITS_GRID) * len(N_BLOCKS_GRID)
@@ -399,9 +389,7 @@ def main():
     print(f"  Results: {RESULTS_FILE}")
     print(f"{'='*70}")
     
-    # ============================================================
     # RETRY FAILED CONFIGS
-    # ============================================================
     retry_failed_configs(fieldnames)
     
     # Print summary table

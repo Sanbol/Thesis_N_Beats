@@ -10,10 +10,8 @@ def num_parameters(model):
 
 class NBEATS_block(nn.Module):
     """
-    This is the code for one N-BEATS block/units.
-    It outputs:
-    (1) a forecast for each time step in the forecast period);
-    (2) and a backcast of the input to facilitate sequential analysis (feed residual to next block).
+    N-BEATS block: shared FC stack with separate backcast and forecast heads.
+    Returns backcast (for residual subtraction) and forecast (accumulated across blocks).
     """
     def __init__(self,
                  backcast_length: int,

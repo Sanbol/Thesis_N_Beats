@@ -35,7 +35,7 @@ plt.rcParams.update({
     "axes.spines.right": False,
 })
 
-# ── Load experiment data ──────────────────────────────────────────────────────
+# Load experiment data
 df_nb = pd.read_csv(os.path.join(BASE, "experiment_results_tuned.csv"))
 df_nh = pd.read_csv(os.path.join(BASE, "nhits_experiment_results_tuned.csv"))
 
@@ -74,7 +74,7 @@ stats = df.groupby(["model", "condition"]).agg(
     sMAPC_std=("sMAPC", "std"),
 ).reset_index()
 
-# ── Load lambda sensitivity data ─────────────────────────────────────────────
+# Load lambda sensitivity data
 df_lambda = pd.read_csv(os.path.join(BASE, "lambda_sensitivity_results.csv"))
 lambda_stats = df_lambda.groupby("lambda").agg(
     sMAPC_mean=("sMAPC", "mean"),
@@ -86,9 +86,7 @@ lambda_stats = df_lambda.groupby("lambda").agg(
 ).reset_index().sort_values("lambda")
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# FIGURE 1: Main Results Table (improved colors + readable title)
-# ══════════════════════════════════════════════════════════════════════════════
+# FIGURE 1: Main Results Table
 print("Generating Figure 1: Results table...")
 
 fig, ax = plt.subplots(figsize=(15, 7))
@@ -158,7 +156,7 @@ for i, row_data in enumerate(table_data, start=1):
         for j in range(len(col_headers)):
             table[i, j].set_facecolor('#FDFEFE')
 
-# Title — larger, with more padding, black text on white background
+# Title
 fig.text(0.5, 0.96,
          "Experiment Results: Mean \u00b1 Std across 3 Seeds",
          ha='center', fontsize=14, fontweight='bold', color='#1A5276')
@@ -172,9 +170,7 @@ plt.close()
 print(f"  Saved: {os.path.join(OUT, 'results_table.png')}")
 
 
-# ══════════════════════════════════════════════════════════════════════════════
 # FIGURE 2: sMAPE Grouped Bar Chart
-# ══════════════════════════════════════════════════════════════════════════════
 print("Generating Figure 2: sMAPE bar chart...")
 
 fig, axes = plt.subplots(1, 2, figsize=(14, 5.5), sharey=True)
@@ -224,9 +220,7 @@ plt.close()
 print(f"  Saved: {os.path.join(OUT, 'smape_bar_chart.png')}")
 
 
-# ══════════════════════════════════════════════════════════════════════════════
 # FIGURE 3: RMSSC Grouped Bar Chart
-# ══════════════════════════════════════════════════════════════════════════════
 print("Generating Figure 3: RMSSC bar chart...")
 
 fig, axes = plt.subplots(1, 2, figsize=(14, 5.5), sharey=True)
@@ -268,9 +262,7 @@ plt.close()
 print(f"  Saved: {os.path.join(OUT, 'rmssc_bar_chart.png')}")
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# FIGURE 4a: Stabilization Delta — sMAPE (separate, legend below)
-# ══════════════════════════════════════════════════════════════════════════════
+# FIGURE 4a: Stabilization Delta - sMAPE
 print("Generating Figure 4a: Stabilization delta (sMAPE)...")
 
 model_colors = {"N-BEATS-S": "#2980B9", "N-HiTS-S": "#E67E22"}
@@ -316,9 +308,7 @@ plt.close()
 print(f"  Saved: {os.path.join(OUT, 'stabilization_delta_smape.png')}")
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# FIGURE 4b: Stabilization Delta — RMSSC (separate, legend below)
-# ══════════════════════════════════════════════════════════════════════════════
+# FIGURE 4b: Stabilization Delta - RMSSC
 print("Generating Figure 4b: Stabilization delta (RMSSC)...")
 
 fig, ax = plt.subplots(figsize=(8, 5))
@@ -359,9 +349,7 @@ plt.close()
 print(f"  Saved: {os.path.join(OUT, 'stabilization_delta_rmssc.png')}")
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# FIGURE 5: Lambda vs sMAPC (convergence plot)
-# ══════════════════════════════════════════════════════════════════════════════
+# FIGURE 5: Lambda vs sMAPC
 print("Generating Figure 5: Lambda vs sMAPC...")
 
 fig, ax1 = plt.subplots(figsize=(10, 6))

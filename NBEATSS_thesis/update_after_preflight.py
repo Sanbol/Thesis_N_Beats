@@ -20,7 +20,7 @@ print("=" * 60)
 print("Reading pre-flight results...")
 print("=" * 60)
 
-# --- Pick lambda winner (lowest val_sMAPE among stabilized configs) ---
+# Pick lambda winner (lowest val_sMAPE among stabilized configs)
 lambda_rows = read_csv(BASE / "lambda_recheck_results.csv")
 if not lambda_rows:
     print("\n  ERROR: lambda_recheck_results.csv is missing or empty.")
@@ -47,7 +47,7 @@ for l, s in sorted(candidates, key=lambda x: x[1]):
     standard = " (Standard baseline)" if l == 0 else ""
     print(f"    lambda={l}: val_sMAPE={s:.4f}{marker}{standard}")
 
-# --- Pick N-HiTS LR winner (lowest val_sMAPE) ---
+# Pick N-HiTS LR winner (lowest val_sMAPE)
 lr_rows = read_csv(BASE / "nhits_lr_tuning_results.csv")
 if not lr_rows:
     print("\n  ERROR: nhits_lr_tuning_results.csv is missing or empty.")
@@ -67,7 +67,7 @@ for l, s in sorted(valid, key=lambda x: x[1]):
     marker = " <-- WINNER" if l == lr_winner else ""
     print(f"    lr={l}: val_sMAPE={s:.4f}{marker}")
 
-# --- Update N-BEATS runner: lambda only ---
+# Update N-BEATS runner: lambda only
 nbeats = BASE / "run_experiments_tuned.py"
 text = nbeats.read_text()
 text = re.sub(r'"lambda_stability":\s*0\.02',
@@ -75,7 +75,7 @@ text = re.sub(r'"lambda_stability":\s*0\.02',
 nbeats.write_text(text)
 print(f"\n  Updated run_experiments_tuned.py: lambda={lambda_winner}")
 
-# --- Update N-HiTS runner: lambda AND scratch/pretrain LR ---
+# Update N-HiTS runner: lambda AND scratch/pretrain LR
 nhits = BASE / "run_nhits_experiments_tuned.py"
 text = nhits.read_text()
 text = re.sub(r'"lambda_stability":\s*0\.02',

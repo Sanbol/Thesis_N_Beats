@@ -8,7 +8,7 @@ ax.set_xlim(0, 12)
 ax.set_ylim(0, 7)
 ax.axis('off')
 
-# --- Colors ---
+# Colors
 dataset_color = '#4472C4'      # Blue for datasets
 train_color = '#548235'        # Green for training phases
 eval_color = '#BF8F00'         # Gold for evaluation
@@ -34,11 +34,11 @@ def draw_label(x, y, text, fontsize=9, color='#333333', style='normal'):
     ax.text(x, y, text, ha='center', va='center', fontsize=fontsize, 
             color=color, fontstyle=style)
 
-# === TITLE ===
+# Title
 ax.text(6, 6.7, 'Experimental Pipeline: Three Evaluation Scenarios', 
         ha='center', va='center', fontsize=14, fontweight='bold', color='#1a1a1a')
 
-# === SCENARIO LABELS (left side) ===
+# Scenario labels
 # Scenario A
 ax.text(0.3, 5.55, 'Scenario A', ha='left', va='center', fontsize=11, fontweight='bold', color='#333333')
 ax.text(0.3, 5.2, 'From Scratch', ha='left', va='center', fontsize=9, color='#666666', fontstyle='italic')
@@ -51,7 +51,7 @@ ax.text(0.3, 3.2, 'Fine-tuned TL', ha='left', va='center', fontsize=9, color='#6
 ax.text(0.3, 1.55, 'Scenario C', ha='left', va='center', fontsize=11, fontweight='bold', color='#333333')
 ax.text(0.3, 1.2, 'Zero-shot TL', ha='left', va='center', fontsize=9, color='#666666', fontstyle='italic')
 
-# === SCENARIO A: FROM SCRATCH ===
+# Scenario A: From Scratch
 # Background
 bg_a = FancyBboxPatch((2.0, 4.8), 9.5, 1.2, boxstyle="round,pad=0.15",
                        facecolor=scenario_bg['scratch'], edgecolor='#CCCCCC', linewidth=0.8)
@@ -69,7 +69,7 @@ draw_arrow(9.7, 5.4, 10.3, 5.4)
 
 draw_box(10.3, 5.15, 1.0, 0.5, 'Metrics', '#C00000', fontsize=8, fontweight='bold')
 
-# === SCENARIO B: FINE-TUNED TL ===
+# Scenario B: Fine-tuned TL
 bg_b = FancyBboxPatch((2.0, 2.8), 9.5, 1.2, boxstyle="round,pad=0.15",
                        facecolor=scenario_bg['tl'], edgecolor='#CCCCCC', linewidth=0.8)
 ax.add_patch(bg_b)
@@ -87,7 +87,7 @@ draw_arrow(9.7, 3.4, 10.3, 3.4)
 
 draw_box(10.3, 3.15, 1.0, 0.5, 'Metrics', '#C00000', fontsize=8, fontweight='bold')
 
-# === SCENARIO C: ZERO-SHOT TL ===
+# Scenario C: Zero-shot TL
 bg_c = FancyBboxPatch((2.0, 0.8), 9.5, 1.2, boxstyle="round,pad=0.15",
                        facecolor=scenario_bg['zs'], edgecolor='#CCCCCC', linewidth=0.8)
 ax.add_patch(bg_c)
@@ -105,7 +105,7 @@ draw_arrow(9.7, 1.4, 10.3, 1.4)
 
 draw_box(10.3, 1.15, 1.0, 0.5, 'Metrics', '#C00000', fontsize=8, fontweight='bold')
 
-# === LEGEND / NOTE at bottom ===
+# Legend
 ax.text(6, 0.3, 'Each scenario is run for 2 architectures × 2 variants (N-BEATS-S, N-HiTS-S: Standard and Stabilized) × 3 seeds',
         ha='center', va='center', fontsize=8.5, color='#555555', fontstyle='italic')
 

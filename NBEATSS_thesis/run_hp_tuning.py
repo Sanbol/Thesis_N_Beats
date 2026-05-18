@@ -39,17 +39,13 @@ from pathlib import Path
 from datetime import datetime
 from itertools import product
 
-# ============================================================
 # PATHS
-# ============================================================
 BASE_DIR = Path(__file__).parent
 PYTHON_EXE = str(BASE_DIR.parent / ".venv" / "Scripts" / "python.exe")
 WANDB_DIR = BASE_DIR / "wandb"
 RESULTS_FILE = BASE_DIR / "hp_tuning_results.csv"
 
-# ============================================================
 # TUNING GRID
-# ============================================================
 HIDDEN_UNITS_GRID = [32, 128, 256, 512]
 N_BLOCKS_GRID = [3, 5, 10]
 SEED = 1  # Single seed for tuning; best config re-run with 3 seeds later
@@ -57,9 +53,7 @@ SEED = 1  # Single seed for tuning; best config re-run with 3 seeds later
 # Which architectures to tune
 ARCHITECTURES = ["NBEATS", "NHITS"]  # Both
 
-# ============================================================
 # MAIN PY TEMPLATES
-# ============================================================
 
 NBEATS_MAIN_TEMPLATE = '''# N-BEATS-S Hyperparameter Tuning Run (auto-generated)
 import os
@@ -298,9 +292,7 @@ if __name__ == '__main__':
 '''
 
 
-# ============================================================
 # HELPER FUNCTIONS
-# ============================================================
 
 def get_existing_wandb_runs():
     if not WANDB_DIR.exists():
